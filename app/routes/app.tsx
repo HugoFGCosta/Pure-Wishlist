@@ -11,29 +11,61 @@ export const links = () => [{ rel: "stylesheet", href: polarisStyles }];
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const url = new URL(request.url);
-  console.log(`[app.tsx] loader called: ${url.pathname}${url.search}`);
-  console.log(`[app.tsx] SHOPIFY_API_KEY set: ${!!process.env.SHOPIFY_API_KEY}`);
-  console.log(`[app.tsx] SHOPIFY_API_SECRET set: ${!!process.env.SHOPIFY_API_SECRET}`);
-  console.log(`[app.tsx] SHOPIFY_APP_URL: ${process.env.SHOPIFY_APP_URL}`);
+  console.log(`[app.tsx] loader: ${url.pathname}${url.search}`);
+  console.log(`[app.tsx] env: API_KEY=${!!process.env.SHOPIFY_API_KEY} SECRET=${!!process.env.SHOPIFY_API_SECRET} URL=${process.env.SHOPIFY_APP_URL}`);
 
   try {
-    console.log("[app.tsx] calling authenticate.admin...");
-    await authenticate.admin(request);
-    console.log("[app.tsx] authenticate.admin succeeded");
+    const { session } = await authenticate.admin(request);
+    console.log(`[app.tsx] auth OK: shop=${session.shop} online=${session.isOnline}`);
+    return {
+      apiKey: process.env.SHOPIFY_API_KEY || "",
+      debugError: null,
+    };
   } catch (err) {
+    // Redirects (3xx) are part of normal auth flow — re-throw them
     if (err instanceof Response) {
-      console.log(`[app.tsx] authenticate.admin threw Response: ${err.status} → ${err.headers.get("location")?.slice(0, 120)}`);
+      console.log(`[app.tsx] auth redirect: ${err.status} → ${err.headers.get("location")?.slice(0, 150)}`);
       throw err;
     }
-    console.error("[app.tsx] authenticate.admin error:", err instanceof Error ? err.message : String(err));
-    console.error("[app.tsx] stack:", err instanceof Error ? err.stack : "n/a");
-    throw err;
+
+    // Real errors — log and return as data so we can display them
+    const msg = err instanceof Error ? err.message : String(err);
+    const stack = err instanceof Error ? err.stack : undefined;
+    console.error(`[app.tsx] auth FAILED: ${msg}`);
+    console.error(`[app.tsx] stack: ${stack}`);
+
+    // Return error as data instead of throwing, so we can render a useful debug page
+    return {
+      apiKey: process.env.SHOPIFY_API_KEY || "",
+      debugError: { message: msg, stack: stack?.slice(0, 1000) },
+    };
   }
-  return { apiKey: process.env.SHOPIFY_API_KEY || "" };
 };
 
 export default function App() {
-  const { apiKey } = useLoaderData<typeof loader>();
+  const { apiKey, debugError } = useLoaderData<typeof loader>();
+
+  // If auth failed, show diagnostic info instead of crashing
+  if (debugError) {
+    return (
+      <div style={{ padding: 40, fontFamily: "monospace", maxWidth: 800 }}>
+        <h1 style={{ color: "red" }}>Auth Error</h1>
+        <p><strong>{debugError.message}</strong></p>
+        <pre style={{ background: "#f5f5f5", padding: 16, overflow: "auto", fontSize: 11, whiteSpace: "pre-wrap" }}>
+          {debugError.stack}
+        </pre>
+        <hr />
+        <p>Env check:</p>
+        <ul style={{ fontSize: 12 }}>
+          <li>SHOPIFY_API_KEY: {process.env.SHOPIFY_API_KEY ? "set" : "MISSING"}</li>
+          <li>SHOPIFY_APP_URL: {process.env.SHOPIFY_APP_URL || "MISSING"}</li>
+        </ul>
+        <p style={{ color: "#666", fontSize: 13, marginTop: 16 }}>
+          Try: uninstall and reinstall the app from your Shopify admin.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <AppProvider apiKey={apiKey}>
@@ -53,7 +85,6 @@ export default function App() {
 export function ErrorBoundary() {
   const error = useRouteError();
 
-  // Always show full error details so we can debug on Vercel
   let errorMessage = "Unknown error";
   let errorDetail = "";
 
@@ -62,24 +93,27 @@ export function ErrorBoundary() {
     errorDetail = error.stack || "";
   } else if (error instanceof Response) {
     errorMessage = `Response ${error.status} ${error.statusText}`;
-    errorDetail = `URL: ${error.url}\nHeaders: ${JSON.stringify(Object.fromEntries(error.headers.entries()), null, 2)}`;
+    errorDetail = `Headers: ${JSON.stringify(Object.fromEntries(error.headers.entries()), null, 2)}`;
   } else if (typeof error === "object" && error !== null) {
-    errorMessage = (error as any).statusText || (error as any).message || "Object error";
-    errorDetail = JSON.stringify(error, null, 2);
+    try {
+      errorDetail = JSON.stringify(error, null, 2);
+      errorMessage = (error as any).statusText || (error as any).message || "Object error";
+    } catch {
+      errorMessage = "Non-serializable error object";
+      errorDetail = String(error);
+    }
   } else {
     errorMessage = String(error);
   }
 
   return (
     <div style={{ padding: 40, fontFamily: "monospace", maxWidth: 800 }}>
-      <h1 style={{ color: "red" }}>App Error</h1>
-      <p><strong>{errorMessage}</strong></p>
+      <h1 style={{ color: "red" }}>App Error (ErrorBoundary)</h1>
+      <p><strong>Type: {error?.constructor?.name || typeof error}</strong></p>
+      <p>{errorMessage}</p>
       <pre style={{ background: "#f5f5f5", padding: 16, overflow: "auto", fontSize: 11, whiteSpace: "pre-wrap", wordBreak: "break-all" }}>
         {errorDetail}
       </pre>
-      <p style={{ marginTop: 24, color: "#666", fontSize: 13 }}>
-        Visit <a href="/debug">/debug</a> for system diagnostics.
-      </p>
     </div>
   );
 }
