@@ -16,10 +16,33 @@ import { getTopProducts } from "../lib/wishlist.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
-  const shop = await getShopByDomain(session.shop);
-  const stats = await getDashboardStats(shop.id);
-  const topProducts = await getTopProducts(shop.id, 5);
-  return { stats, topProducts };
+
+  try {
+    const shop = await getShopByDomain(session.shop);
+    const [stats, topProducts] = await Promise.all([
+      getDashboardStats(shop.id).catch(() => ({
+        totalWishlists: 0,
+        uniqueCustomers: 0,
+        uniqueProducts: 0,
+        conversionRate: "0",
+        dailyActivity: [],
+      })),
+      getTopProducts(shop.id, 5).catch(() => []),
+    ]);
+    return { stats, topProducts };
+  } catch (err) {
+    console.error("Dashboard loader error:", err);
+    return {
+      stats: {
+        totalWishlists: 0,
+        uniqueCustomers: 0,
+        uniqueProducts: 0,
+        conversionRate: "0",
+        dailyActivity: [],
+      },
+      topProducts: [],
+    };
+  }
 };
 
 export default function DashboardPage() {
