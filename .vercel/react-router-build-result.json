@@ -17,6 +17,7 @@
       "routes/api.proxy": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
       "routes/_index": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
       "routes/auth.$": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
+      "routes/debug": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
       "routes/app.notifications": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
       "routes/app.customers": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
       "routes/app.wishlists": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
@@ -90,6 +91,15 @@
         "parentId": "root",
         "file": "app/routes/auth.$.tsx",
         "path": "auth/*",
+        "config": {
+          "runtime": "nodejs"
+        }
+      },
+      "routes/debug": {
+        "id": "routes/debug",
+        "parentId": "root",
+        "file": "app/routes/debug.tsx",
+        "path": "debug",
         "config": {
           "runtime": "nodejs"
         }
@@ -217,6 +227,12 @@
         "file": "routes/auth.$.tsx",
         "path": "auth/*"
       },
+      "routes/debug": {
+        "id": "routes/debug",
+        "parentId": "root",
+        "file": "routes/debug.tsx",
+        "path": "debug"
+      },
       "routes/app": {
         "id": "routes/app",
         "parentId": "root",
@@ -308,6 +324,11 @@
             "id": "routes/auth.$",
             "file": "routes/auth.$.tsx",
             "path": "auth/*"
+          },
+          {
+            "id": "routes/debug",
+            "file": "routes/debug.tsx",
+            "path": "debug"
           },
           {
             "id": "routes/app",
