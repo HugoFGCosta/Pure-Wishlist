@@ -1,6 +1,6 @@
 name = "Pure Wishlist"
-client_id = ""
-application_url = ""
+client_id = "de38910e605ae6e1a2c3c753faea0b92"  # COLOQUE SEU API KEY COMPLETO AQUI
+application_url = "https://purewishlist.vercel.app"  # SUBSTITUA PELA SUA URL REAL
 embedded = true
 
 [access_scopes]
@@ -8,7 +8,7 @@ scopes = "read_products,read_customers,write_products"
 
 [auth]
 redirect_urls = [
-  "https://localhost/auth/callback",
+  "https://purewishlist.vercel.app/auth/callback",
 ]
 
 [webhooks]
@@ -20,7 +20,7 @@ api_version = "2025-01"
   shop_deletion_url = "/webhooks/shop/redact"
 
 [app_proxy]
-url = ""
+url = "https://purewishlist.vercel.app/api/proxy"
 subpath = "wishlist"
 prefix = "apps"
 

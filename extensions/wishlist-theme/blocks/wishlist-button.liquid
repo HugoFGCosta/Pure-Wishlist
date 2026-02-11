@@ -8,21 +8,19 @@
   data-pw-button
   data-product-id="{{ product.id }}"
   data-customer-id="{{ customer.id }}"
-  style="--pw-color: {{ block.settings.color }};"
->
+  style="--pw-color: {{ block.settings.color }};">
   <button
     type="button"
     class="pw-btn"
     aria-label="{{ block.settings.text_add }}"
-    {% unless customer %}disabled{% endunless %}
-  >
+    {% unless customer %}
+    disabled{% endunless %}>
     <svg
       class="pw-heart"
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 24 24"
       width="24"
-      height="24"
-    >
+      height="24">
       <path
         class="pw-heart__outline"
         d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5
@@ -31,8 +29,7 @@
            c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
         fill="none"
         stroke="currentColor"
-        stroke-width="2"
-      />
+        stroke-width="2" />
       <path
         class="pw-heart__filled"
         d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5
@@ -40,11 +37,13 @@
            C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5
            c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
         fill="currentColor"
-        stroke="none"
-      />
+        stroke="none" />
     </svg>
     {% if block.settings.show_text %}
-      <span class="pw-btn__text" data-pw-text-add="{{ block.settings.text_add }}" data-pw-text-remove="{{ block.settings.text_remove }}">
+      <span
+        class="pw-btn__text"
+        data-pw-text-add="{{ block.settings.text_add }}"
+        data-pw-text-remove="{{ block.settings.text_remove }}">
         {{ block.settings.text_add }}
       </span>
     {% endif %}
@@ -99,11 +98,6 @@
       "id": "text_remove",
       "label": "Remove text",
       "default": "Remove from Wishlist"
-    }
-  ],
-  "presets": [
-    {
-      "name": "Wishlist Button"
     }
   ]
 }
