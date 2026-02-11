@@ -4,17 +4,10 @@ import {
   AppDistribution,
   shopifyApp,
 } from "@shopify/shopify-app-react-router/server";
-import pg from "pg";
-import { PostgreSQLSessionStorage } from "@shopify/shopify-app-session-storage-postgresql";
 import { supabaseAdmin } from "./db.server";
+import { SupabaseSessionStorage } from "./supabase-session-storage.server";
 
-// The Shopify session storage library parses the DB URL but drops
-// ?sslmode=require when creating the pg.Pool. Supabase requires SSL.
-pg.defaults.ssl = { rejectUnauthorized: false };
-
-const sessionStorage = new PostgreSQLSessionStorage(
-  process.env.SUPABASE_DB_URL!,
-);
+const sessionStorage = new SupabaseSessionStorage();
 
 const shopify = shopifyApp({
   apiKey: process.env.SHOPIFY_API_KEY,
