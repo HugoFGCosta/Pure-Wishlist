@@ -12,29 +12,38 @@ export const links = () => [{ rel: "stylesheet", href: polarisStyles }];
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const url = new URL(request.url);
   console.log(`[app.tsx] loader: ${url.pathname}${url.search}`);
-  console.log(`[app.tsx] env: API_KEY=${!!process.env.SHOPIFY_API_KEY} SECRET=${!!process.env.SHOPIFY_API_SECRET} URL=${process.env.SHOPIFY_APP_URL}`);
 
   try {
-    const { session } = await authenticate.admin(request);
-    console.log(`[app.tsx] auth OK: shop=${session.shop} online=${session.isOnline}`);
+    const result = await authenticate.admin(request);
+    console.log(`[app.tsx] auth OK: shop=${result?.session?.shop}`);
     return {
       apiKey: process.env.SHOPIFY_API_KEY || "",
       debugError: null,
     };
   } catch (err) {
-    // Redirects (3xx) are part of normal auth flow — re-throw them
-    if (err instanceof Response) {
+    // Only re-throw actual redirects (3xx) — they're part of OAuth flow
+    if (err instanceof Response && err.status >= 300 && err.status < 400) {
       console.log(`[app.tsx] auth redirect: ${err.status} → ${err.headers.get("location")?.slice(0, 150)}`);
       throw err;
     }
 
-    // Real errors — log and return as data so we can display them
-    const msg = err instanceof Error ? err.message : String(err);
-    const stack = err instanceof Error ? err.stack : undefined;
-    console.error(`[app.tsx] auth FAILED: ${msg}`);
-    console.error(`[app.tsx] stack: ${stack}`);
+    // Non-redirect Responses (400, 401, etc.) — extract info
+    if (err instanceof Response) {
+      let body = "";
+      try { body = await err.text(); } catch {}
+      const msg = `Response ${err.status} ${err.statusText}`;
+      console.error(`[app.tsx] auth Response error: ${msg} body=${body.slice(0, 500)}`);
+      return {
+        apiKey: process.env.SHOPIFY_API_KEY || "",
+        debugError: { message: msg, stack: `Body: ${body.slice(0, 1000)}\nHeaders: ${JSON.stringify(Object.fromEntries(err.headers.entries()))}` },
+      };
+    }
 
-    // Return error as data instead of throwing, so we can render a useful debug page
+    // Regular errors
+    const msg = err instanceof Error ? err.message : String(err);
+    const stack = err instanceof Error ? err.stack : JSON.stringify(err);
+    console.error(`[app.tsx] auth error: ${msg}`);
+    console.error(`[app.tsx] stack: ${stack}`);
     return {
       apiKey: process.env.SHOPIFY_API_KEY || "",
       debugError: { message: msg, stack: stack?.slice(0, 1000) },

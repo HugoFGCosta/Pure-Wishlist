@@ -15,7 +15,18 @@ import { getDashboardStats } from "../lib/analytics.server";
 import { getTopProducts } from "../lib/wishlist.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
+  let session: any;
+  try {
+    const auth = await authenticate.admin(request);
+    session = auth.session;
+  } catch (err) {
+    if (err instanceof Response) throw err; // re-throw redirects
+    console.error("[app._index] auth failed:", err);
+    return {
+      stats: { totalWishlists: 0, uniqueCustomers: 0, uniqueProducts: 0, conversionRate: "0", dailyActivity: [] },
+      topProducts: [],
+    };
+  }
 
   try {
     const shop = await getShopByDomain(session.shop);
