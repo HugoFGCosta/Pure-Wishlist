@@ -1,0 +1,80 @@
+{% comment %}
+  Pure Wishlist — Wishlist Page Block
+  Renders the full wishlist grid on a dedicated page.
+{% endcomment %}
+
+{{ 'wishlist.css' | asset_url | stylesheet_tag }}
+<script src="{{ 'wishlist.js' | asset_url }}" defer="defer"></script>
+
+<div class="pw-page" data-pw-page style="--pw-columns: {{ block.settings.columns }};">
+  <h1 class="pw-page__title">{{ block.settings.title }}</h1>
+
+  {% if customer %}
+    <div class="pw-loading" data-pw-loading>
+      <p>{{ 'wishlist.loading' | t }}</p>
+    </div>
+
+    <div class="pw-grid" data-pw-grid style="display:none;"></div>
+
+    <div class="pw-empty" data-pw-empty style="display:none;">
+      <p>{{ 'wishlist.empty_state' | t }}</p>
+      <a href="/collections/all" class="pw-empty__link">{{ 'wishlist.empty_cta' | t: default: 'Start shopping' }}</a>
+    </div>
+  {% else %}
+    <div class="pw-login-required">
+      <p>{{ 'wishlist.login_prompt' | t }}</p>
+      <a href="/account/login" class="pw-login-required__link">{{ 'wishlist.login_cta' | t: default: 'Log in' }}</a>
+    </div>
+  {% endif %}
+</div>
+
+<!-- card template used by JS -->
+<template data-pw-card-template>
+  <div class="pw-card">
+    <a class="pw-card__image-link" href="">
+      <img class="pw-card__image" src="" alt="" loading="lazy" width="300" height="300">
+    </a>
+    <div class="pw-card__info">
+      <a class="pw-card__title" href=""></a>
+      <p class="pw-card__price"></p>
+      <div class="pw-card__actions">
+        <button type="button" class="pw-card__atc">{{ 'wishlist.add_to_cart' | t: default: 'Add to Cart' }}</button>
+        <button type="button" class="pw-card__remove" aria-label="{{ 'wishlist.button_remove' | t }}">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20">
+            <line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2"/>
+            <line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</template>
+
+{% schema %}
+{
+  "name": "Wishlist Page",
+  "target": "section",
+  "settings": [
+    {
+      "type": "range",
+      "id": "columns",
+      "label": "Columns",
+      "min": 2,
+      "max": 4,
+      "step": 1,
+      "default": 3
+    },
+    {
+      "type": "text",
+      "id": "title",
+      "label": "Page title",
+      "default": "My Wishlist"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Wishlist Page"
+    }
+  ]
+}
+{% endschema %}

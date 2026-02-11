@@ -1,0 +1,281 @@
+/* ==========================================================================
+   Pure Wishlist — Theme Extension Styles
+   ========================================================================== */
+
+/* ---- Custom Properties (overridden by Liquid inline styles) ---- */
+:root {
+  --pw-color: #ff0000;
+  --pw-columns: 3;
+}
+
+/* ==========================================================================
+   Wishlist Button
+   ========================================================================== */
+
+.pw-btn-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-direction: column;
+}
+
+.pw-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0.4em;
+  color: var(--pw-color);
+  font: inherit;
+  line-height: 1;
+  transition: opacity 0.15s ease;
+}
+
+.pw-btn:disabled {
+  cursor: default;
+  opacity: 0.35;
+}
+
+/* Heart icon */
+.pw-btn svg {
+  display: block;
+  transition: transform 0.2s ease;
+}
+
+.pw-btn:hover:not(:disabled) svg {
+  transform: scale(1.15);
+}
+
+/* Outline visible by default, filled hidden */
+.pw-heart__filled {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.pw-heart__outline {
+  transition: opacity 0.2s ease;
+}
+
+/* Active (wishlisted) state */
+.pw-btn--active .pw-heart__filled {
+  opacity: 1;
+}
+
+.pw-btn--active .pw-heart__outline {
+  opacity: 0;
+}
+
+/* Size variants */
+.pw-btn--small .pw-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.pw-btn--medium .pw-btn svg {
+  width: 24px;
+  height: 24px;
+}
+
+.pw-btn--large .pw-btn svg {
+  width: 32px;
+  height: 32px;
+}
+
+/* Button text */
+.pw-btn__text {
+  font-size: 0.875em;
+}
+
+/* Login hint beneath button */
+.pw-login-hint {
+  font-size: 0.75em;
+  margin: 0.25em 0 0;
+}
+
+.pw-login-hint a {
+  color: var(--pw-color);
+  text-decoration: underline;
+}
+
+/* ==========================================================================
+   Wishlist Page
+   ========================================================================== */
+
+.pw-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+.pw-page__title {
+  margin: 0 0 1.5rem;
+  font-size: 1.75rem;
+}
+
+/* Grid */
+.pw-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--pw-columns, 3), 1fr);
+  gap: 1.5rem;
+}
+
+@media (max-width: 899px) {
+  .pw-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 549px) {
+  .pw-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Card */
+.pw-card {
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  transition: box-shadow 0.2s ease;
+}
+
+.pw-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.pw-card__image-link {
+  display: block;
+  aspect-ratio: 1;
+  overflow: hidden;
+  background: #f5f5f5;
+}
+
+.pw-card__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.pw-card__info {
+  padding: 0.75rem 1rem 1rem;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.pw-card__title {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: inherit;
+  text-decoration: none;
+  margin-bottom: 0.25rem;
+}
+
+.pw-card__title:hover {
+  text-decoration: underline;
+}
+
+.pw-card__price {
+  font-size: 0.9rem;
+  margin: 0 0 0.75rem;
+  color: #555;
+}
+
+.pw-card__actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-top: auto;
+}
+
+.pw-card__atc {
+  flex: 1;
+  padding: 0.5rem 1rem;
+  border: 1px solid #222;
+  border-radius: 4px;
+  background: #222;
+  color: #fff;
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.pw-card__atc:hover {
+  background: #444;
+}
+
+.pw-card__remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 0.45rem;
+  cursor: pointer;
+  color: #888;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.pw-card__remove:hover {
+  color: #c00;
+  border-color: #c00;
+}
+
+/* Empty state */
+.pw-empty {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #777;
+}
+
+.pw-empty__link {
+  display: inline-block;
+  margin-top: 1rem;
+  padding: 0.6rem 1.5rem;
+  background: #222;
+  color: #fff;
+  border-radius: 4px;
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.pw-empty__link:hover {
+  background: #444;
+}
+
+/* Login required */
+.pw-login-required {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #777;
+}
+
+.pw-login-required__link {
+  display: inline-block;
+  margin-top: 1rem;
+  padding: 0.6rem 1.5rem;
+  background: var(--pw-color);
+  color: #fff;
+  border-radius: 4px;
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.pw-login-required__link:hover {
+  opacity: 0.85;
+}
+
+/* Loading */
+.pw-loading {
+  text-align: center;
+  padding: 2rem;
+  color: #999;
+}

@@ -1,0 +1,14 @@
+{
+  "wishlist": {
+    "button_add": "Add to Wishlist",
+    "button_remove": "Remove from Wishlist",
+    "page_title": "My Wishlist",
+    "empty_state": "Your wishlist is empty.",
+    "empty_cta": "Start shopping",
+    "login_prompt": "Log in to save your wishlist.",
+    "login_cta": "Log in",
+    "loading": "Loading your wishlist…",
+    "add_to_cart": "Add to Cart",
+    "added_to_cart": "Added!"
+  }
+}

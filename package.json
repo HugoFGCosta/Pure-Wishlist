@@ -1,0 +1,50 @@
+{
+  "name": "pure-wishlist",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "react-router build",
+    "dev": "shopify app dev",
+    "start": "react-router-serve ./build/server/index.js",
+    "docker-start": "react-router-serve ./build/server/index.js",
+    "setup": "echo 'Run SQL migrations in Supabase dashboard'",
+    "lint": "eslint --cache --cache-location ./node_modules/.cache/eslint .",
+    "shopify": "shopify",
+    "graphql-codegen": "graphql-codegen",
+    "vite": "vite"
+  },
+  "dependencies": {
+    "@react-router/fs-routes": "^7.13.0",
+    "@react-router/node": "^7.1.3",
+    "@react-router/serve": "^7.1.3",
+    "@shopify/app-bridge-react": "^4.1.6",
+    "@shopify/polaris": "^13.9.2",
+    "@shopify/shopify-api": "^12.0.0",
+    "@shopify/shopify-app-react-router": "^1.1.1",
+    "@shopify/shopify-app-session-storage-postgresql": "^5.0.0",
+    "@supabase/supabase-js": "^2.49.1",
+    "isbot": "^5.1.22",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router": "^7.1.3",
+    "resend": "^4.0.0"
+  },
+  "devDependencies": {
+    "@graphql-codegen/cli": "^5.0.3",
+    "@react-router/dev": "^7.1.3",
+    "@shopify/api-codegen-preset": "^1.1.1",
+    "@types/react": "^18.2.79",
+    "@types/react-dom": "^18.2.25",
+    "@vercel/react-router": "^1.2.5",
+    "typescript": "^5.7.3",
+    "vite": "^6.0.0",
+    "vite-tsconfig-paths": "^5.1.4"
+  },
+  "workspaces": [
+    "extensions/*"
+  ],
+  "author": "webcomum",
+  "overrides": {
+    "typescript": "^5.7.3"
+  }
+}
