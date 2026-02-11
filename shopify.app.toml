@@ -1,0 +1,28 @@
+name = "Pure Wishlist"
+client_id = ""
+application_url = ""
+embedded = true
+
+[access_scopes]
+scopes = "read_products,read_customers,write_products"
+
+[auth]
+redirect_urls = [
+  "https://localhost/auth/callback",
+]
+
+[webhooks]
+api_version = "2025-01"
+
+  [webhooks.privacy_compliance]
+  customer_data_request_url = "/webhooks/customers/data_request"
+  customer_deletion_url = "/webhooks/customers/redact"
+  shop_deletion_url = "/webhooks/shop/redact"
+
+[app_proxy]
+url = ""
+subpath = "wishlist"
+prefix = "apps"
+
+[pos]
+embedded = false

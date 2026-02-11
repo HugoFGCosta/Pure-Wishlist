@@ -1,0 +1,12 @@
+api_version = "2025-01"
+
+[[extensions]]
+type = "theme"
+name = "Pure Wishlist"
+handle = "wishlist-theme"
+
+  [[extensions.assets]]
+  path = "assets/wishlist.js"
+
+  [[extensions.assets]]
+  path = "assets/wishlist.css"

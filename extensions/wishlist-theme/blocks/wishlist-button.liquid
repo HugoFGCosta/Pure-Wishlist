@@ -1,0 +1,110 @@
+{% comment %}
+  Pure Wishlist — Wishlist Button Block
+  Renders a heart toggle on product pages.
+{% endcomment %}
+
+<div
+  class="pw-btn-wrap pw-btn--{{ block.settings.size }}"
+  data-pw-button
+  data-product-id="{{ product.id }}"
+  data-customer-id="{{ customer.id }}"
+  style="--pw-color: {{ block.settings.color }};"
+>
+  <button
+    type="button"
+    class="pw-btn"
+    aria-label="{{ block.settings.text_add }}"
+    {% unless customer %}disabled{% endunless %}
+  >
+    <svg
+      class="pw-heart"
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      width="24"
+      height="24"
+    >
+      <path
+        class="pw-heart__outline"
+        d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5
+           2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09
+           C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5
+           c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      />
+      <path
+        class="pw-heart__filled"
+        d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5
+           2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09
+           C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5
+           c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
+        fill="currentColor"
+        stroke="none"
+      />
+    </svg>
+    {% if block.settings.show_text %}
+      <span class="pw-btn__text" data-pw-text-add="{{ block.settings.text_add }}" data-pw-text-remove="{{ block.settings.text_remove }}">
+        {{ block.settings.text_add }}
+      </span>
+    {% endif %}
+  </button>
+
+  {% unless customer %}
+    <p class="pw-login-hint">
+      <a href="/account/login">{{ 'wishlist.login_prompt' | t }}</a>
+    </p>
+  {% endunless %}
+</div>
+
+{{ 'wishlist.css' | asset_url | stylesheet_tag }}
+<script src="{{ 'wishlist.js' | asset_url }}" defer="defer"></script>
+
+{% schema %}
+{
+  "name": "Wishlist Button",
+  "target": "section",
+  "settings": [
+    {
+      "type": "color",
+      "id": "color",
+      "label": "Heart color",
+      "default": "#ff0000"
+    },
+    {
+      "type": "select",
+      "id": "size",
+      "label": "Size",
+      "options": [
+        { "value": "small", "label": "Small" },
+        { "value": "medium", "label": "Medium" },
+        { "value": "large", "label": "Large" }
+      ],
+      "default": "medium"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_text",
+      "label": "Show text label",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "text_add",
+      "label": "Add text",
+      "default": "Add to Wishlist"
+    },
+    {
+      "type": "text",
+      "id": "text_remove",
+      "label": "Remove text",
+      "default": "Remove from Wishlist"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Wishlist Button"
+    }
+  ]
+}
+{% endschema %}
