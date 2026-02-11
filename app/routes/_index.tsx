@@ -1,8 +1,16 @@
 import type { LoaderFunctionArgs } from "react-router";
+import { redirect } from "react-router";
 import { useLoaderData } from "react-router";
 import { supabaseAdmin } from "../db.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
+  const url = new URL(request.url);
+
+  // If loaded from Shopify (has shop/host params), redirect to /app
+  if (url.searchParams.get("shop") || url.searchParams.get("host")) {
+    throw redirect(`/app${url.search}`);
+  }
+
   const checks: Record<string, { ok: boolean; detail: string }> = {};
 
   // 1. Env vars
