@@ -1,8 +1,9 @@
 import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
-import { Link, Outlet, useLoaderData, useRouteError } from "react-router";
+import { Link, Outlet, useLoaderData, useRouteError, useNavigate, useLocation } from "react-router";
+import { useCallback } from "react";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { AppProvider } from "@shopify/shopify-app-react-router/react";
-import { AppProvider as PolarisAppProvider } from "@shopify/polaris";
+import { AppProvider as PolarisAppProvider, Tabs } from "@shopify/polaris";
 import polarisTranslations from "@shopify/polaris/locales/en.json";
 import { NavMenu } from "@shopify/app-bridge-react";
 import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
@@ -10,6 +11,15 @@ import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
 import { authenticate } from "../shopify.server";
 
 export const links = () => [{ rel: "stylesheet", href: polarisStyles }];
+
+const NAV_TABS = [
+  { id: "home", content: "🏠 Home", path: "/app" },
+  { id: "wishlists", content: "💜 Wishlists", path: "/app/wishlists" },
+  { id: "products", content: "📦 Products", path: "/app/products" },
+  { id: "customers", content: "👥 Customers", path: "/app/customers" },
+  { id: "notifications", content: "🔔 Notifications", path: "/app/notifications" },
+  { id: "settings", content: "⚙️ Settings", path: "/app/settings" },
+];
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const url = new URL(request.url);
@@ -55,6 +65,21 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
 export default function App() {
   const { apiKey, debugError } = useLoaderData<typeof loader>();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const selectedTab = NAV_TABS.findIndex((tab) =>
+    tab.path === "/app"
+      ? location.pathname === "/app" || location.pathname === "/app/"
+      : location.pathname.startsWith(tab.path),
+  );
+
+  const handleTabChange = useCallback(
+    (index: number) => {
+      navigate(NAV_TABS[index].path);
+    },
+    [navigate],
+  );
 
   // If auth failed, show diagnostic info instead of crashing
   if (debugError) {
@@ -79,7 +104,7 @@ export default function App() {
   }
 
   return (
-    <AppProvider apiKey={apiKey}>
+    <AppProvider apiKey={apiKey} embedded>
       <PolarisAppProvider i18n={polarisTranslations}>
         <NavMenu>
           <Link to="/app" rel="home">Home</Link>
@@ -89,6 +114,14 @@ export default function App() {
           <Link to="/app/notifications">Notifications</Link>
           <Link to="/app/settings">Settings</Link>
         </NavMenu>
+        <div style={{ borderBottom: "1px solid var(--p-color-border-secondary)", marginBottom: 16 }}>
+          <Tabs
+            tabs={NAV_TABS}
+            selected={selectedTab >= 0 ? selectedTab : 0}
+            onSelect={handleTabChange}
+            fitted
+          />
+        </div>
         <Outlet />
       </PolarisAppProvider>
     </AppProvider>
