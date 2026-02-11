@@ -10,7 +10,14 @@ import { authenticate } from "../shopify.server";
 export const links = () => [{ rel: "stylesheet", href: polarisStyles }];
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  await authenticate.admin(request);
+  try {
+    await authenticate.admin(request);
+  } catch (err) {
+    // Re-throw redirects (auth bounces) — they're not real errors
+    if (err instanceof Response) throw err;
+    console.error("authenticate.admin failed:", err);
+    throw err;
+  }
   return { apiKey: process.env.SHOPIFY_API_KEY || "" };
 };
 
@@ -33,7 +40,34 @@ export default function App() {
 }
 
 export function ErrorBoundary() {
-  return boundary.error(useRouteError());
+  const error = useRouteError();
+  console.error("App ErrorBoundary:", error);
+
+  // Show debug info in dev/debug mode
+  const errorMessage =
+    error instanceof Error
+      ? error.message
+      : typeof error === "object" && error !== null && "statusText" in error
+        ? String((error as any).statusText)
+        : "Unknown error";
+
+  const errorStack =
+    error instanceof Error ? error.stack : JSON.stringify(error, null, 2);
+
+  try {
+    return boundary.error(error);
+  } catch {
+    // Fallback if boundary.error itself fails
+    return (
+      <div style={{ padding: 40, fontFamily: "monospace" }}>
+        <h1>App Error</h1>
+        <p style={{ color: "red" }}>{errorMessage}</p>
+        <pre style={{ background: "#f5f5f5", padding: 16, overflow: "auto", fontSize: 12 }}>
+          {errorStack}
+        </pre>
+      </div>
+    );
+  }
 }
 
 export const headers: HeadersFunction = (headersArgs) => {
