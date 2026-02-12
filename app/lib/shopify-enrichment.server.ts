@@ -103,6 +103,11 @@ export async function enrichCustomers(
         `query { nodes(ids: [${gids}]) { ... on Customer { id firstName lastName email } } }`,
       );
       const json = await response.json();
+
+      if (json.errors) {
+        console.error("[enrichCustomers] GraphQL errors:", JSON.stringify(json.errors));
+      }
+
       const nodes = json?.data?.nodes || [];
 
       for (const node of nodes) {
@@ -129,7 +134,7 @@ export async function enrichCustomers(
         numericId: id,
         name: `Customer #${id}`,
         email: "",
-        url: `shopify://admin/customers/${id}`,
+        url: `https://${shop}/admin/customers/${id}`,
       });
     }
   }
