@@ -286,8 +286,6 @@
 
 .pw-overlay-heart {
   position: absolute;
-  top: 8px;
-  right: 8px;
   z-index: 10;
   display: inline-flex;
   align-items: center;
@@ -303,6 +301,12 @@
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
+
+/* Position variants */
+.pw-overlay-heart--top-right { top: 8px; right: 8px; }
+.pw-overlay-heart--top-left { top: 8px; left: 8px; }
+.pw-overlay-heart--bottom-right { bottom: 8px; right: 8px; }
+.pw-overlay-heart--bottom-left { bottom: 8px; left: 8px; }
 
 .pw-overlay-heart:hover:not(:disabled) {
   transform: scale(1.12);

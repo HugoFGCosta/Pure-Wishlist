@@ -9,6 +9,7 @@
   data-pw-embed
   data-pw-customer-id="{{ customer.id }}"
   data-pw-color="{{ block.settings.color }}"
+  data-pw-position="{{ block.settings.position }}"
   style="display:none"></div>
 
 {% schema %}
@@ -21,9 +22,20 @@
     {
       "type": "color",
       "id": "color",
-      "label": "Heart color (fallback)",
-      "default": "#ff0000",
-      "info": "Used if no color is set in the app dashboard."
+      "label": "Heart color",
+      "default": "#ff0000"
+    },
+    {
+      "type": "select",
+      "id": "position",
+      "label": "Icon position",
+      "options": [
+        { "value": "top-right", "label": "Top right" },
+        { "value": "top-left", "label": "Top left" },
+        { "value": "bottom-right", "label": "Bottom right" },
+        { "value": "bottom-left", "label": "Bottom left" }
+      ],
+      "default": "top-right"
     }
   ]
 }
