@@ -294,6 +294,8 @@
   justify-content: center;
   width: 36px;
   height: 36px;
+  /* Override theme variable if present */
+  --media-radius: 50%;
   border-radius: 50% !important;
   border: none;
   background: rgba(255, 255, 255, 0.9);
@@ -304,6 +306,13 @@
   transition:
     transform 0.2s ease,
     box-shadow 0.2s ease;
+}
+
+/* Ensure specificity wins against theme wildcards */
+.product-media .pw-overlay-heart,
+.media-gallery .pw-overlay-heart,
+.pw-overlay-heart.pw-overlay-heart {
+  border-radius: 50% !important;
 }
 
 /* Position variants */
