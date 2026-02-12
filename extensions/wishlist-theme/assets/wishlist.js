@@ -293,34 +293,35 @@
     },
 
     /**
-     * Find the product card container for a given product link.
-     * Walks up the DOM to find a common card-like ancestor.
+     * Find the image container near a product link.
+     * Returns the tightest parent around the product image for accurate positioning.
      */
-    _findCardContainer(link) {
-      // Try common card selectors first
-      const card = link.closest(
-        '.card, .product-card, .card-wrapper, .grid__item, .grid-item, ' +
-        '[class*="card"], [class*="product-card"], [class*="ProductItem"], ' +
-        'li, .collection-product-card'
-      );
-      // Fallback: walk up max 5 levels to find an element that contains both a link and img
-      if (card) {
-        if (card.querySelector('img')) return card;
-      }
+    _findImageContainer(link) {
+      // 1. Image inside the link itself
+      const imgInside = link.querySelector('img');
+      if (imgInside) return imgInside.parentElement === link ? link : imgInside.parentElement;
+
+      // 2. Walk up to find a container with both link and img
       let el = link.parentElement;
-      for (let i = 0; i < 5 && el; i++) {
-        if (el.querySelector('img') && el.querySelector('a[href*="/products/"]')) return el;
+      for (let i = 0; i < 6 && el && el !== document.body; i++) {
+        const img = el.querySelector('img');
+        if (img && el.querySelector('a[href*="/products/"]')) {
+          // Return the tightest wrapper around the image, not the whole card
+          const imgParent = img.parentElement;
+          if (imgParent && imgParent !== el) return imgParent;
+          return el;
+        }
         el = el.parentElement;
       }
       return null;
     },
 
     /**
-     * Scan DOM for product links, find their card containers, extract handles, inject hearts.
+     * Scan DOM for product links, find image containers, extract handles, inject hearts.
      */
     _scanAndInject() {
       const links = document.querySelectorAll('a[href*="/products/"]');
-      const toResolve = new Map(); // handle → [cardContainer, ...]
+      const toResolve = new Map(); // handle → [imageContainer, ...]
 
       links.forEach((link) => {
         if (this._processedLinks.has(link)) return;
@@ -329,10 +330,10 @@
         if (!match) return;
 
         const handle = match[1];
-        const card = this._findCardContainer(link);
-        if (!card || !card.querySelector('img')) return;
-        // Skip if this card already has an overlay
-        if (card.querySelector('.pw-overlay-heart')) {
+        const container = this._findImageContainer(link);
+        if (!container) return;
+        // Skip if this container already has an overlay
+        if (container.querySelector('.pw-overlay-heart')) {
           this._processedLinks.add(link);
           return;
         }
@@ -342,7 +343,7 @@
         if (!toResolve.has(handle)) {
           toResolve.set(handle, []);
         }
-        toResolve.get(handle).push(card);
+        toResolve.get(handle).push(container);
       });
 
       if (!toResolve.size) return;
@@ -394,12 +395,12 @@
     _injectAllOverlays(handleMap, productIdMap) {
       const allProductIds = [];
 
-      handleMap.forEach((cards, handle) => {
+      handleMap.forEach((containers, handle) => {
         const productId = productIdMap.get(handle);
         if (!productId) return;
 
-        cards.forEach((card) => {
-          this._addOverlayHeart(card, productId);
+        containers.forEach((container) => {
+          this._addOverlayHeart(container, productId);
         });
 
         if (!allProductIds.includes(productId)) {
@@ -416,10 +417,10 @@
     /**
      * Add an overlay heart button onto a product card container.
      */
-    _addOverlayHeart(card, productId) {
-      // Ensure card is positioned
-      const pos = getComputedStyle(card).position;
-      if (pos === 'static') card.style.position = 'relative';
+    _addOverlayHeart(container, productId) {
+      // Ensure container is positioned
+      const pos = getComputedStyle(container).position;
+      if (pos === 'static') container.style.position = 'relative';
 
       const btn = document.createElement('button');
       btn.type = 'button';
@@ -427,6 +428,8 @@
       btn.dataset.pwProductId = productId;
       btn.setAttribute('aria-label', 'Add to Wishlist');
       btn.innerHTML = HEART_SVG;
+      // Apply color directly inline to avoid CSS variable cascade issues
+      btn.style.color = this._overlayColor;
 
       if (!this._overlayCustomerId) {
         btn.disabled = true;
@@ -461,7 +464,7 @@
           });
       });
 
-      card.appendChild(btn);
+      container.appendChild(btn);
     },
 
     /**
