@@ -294,7 +294,7 @@
   justify-content: center;
   width: 36px;
   height: 36px;
-  border-radius: 50%;
+  border-radius: 50% !important;
   border: none;
   background: rgba(255, 255, 255, 0.9);
   color: var(--pw-overlay-color, #ff0000);
