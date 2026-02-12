@@ -1,7 +1,8 @@
 /**
  * Pure Wishlist — Theme Extension JS
  * Handles wishlist button toggling, wishlist page rendering,
- * and auto-injected heart overlays on product card images.
+ * auto-injected heart overlays on product card images,
+ * and support for the main product page image.
  */
 
 (function () {
@@ -54,6 +55,9 @@
 
       // Auto-overlay system (from embed block)
       this._initOverlays();
+      
+      // Explicit support for Product Page main image
+      this._injectProductPage();
     },
 
     /* ------------------------------------------------------------------ */
@@ -276,14 +280,24 @@
       // Set color immediately
       document.documentElement.style.setProperty('--pw-overlay-color', this._overlayColor);
 
-      // Try to fetch backend settings for authoritative color
+      // Priority: Embed Settings > Backend Settings
+      // If we have a color from the embed (and it's not just the default or we want to trust it), use it.
+      // We still fetch settings for other potential configs (if any), but won't overwrite color if embed provided one.
+      
       fetch(`${PROXY}?action=settings`, { credentials: 'same-origin' })
         .then((r) => r.ok ? r.json() : null)
         .then((data) => {
+          // Only overwrite if we didn't get a valid color from embed or if we want to enforce backend
+          // But user requested "Theme Editor color should apply". 
+          // So we only update if we *don't* have an overlayColor yet (unlikely) 
+          // or if we decide to implement a "force backend" flag. 
+          // For now, we simply ignore backend color to fix the issue.
+          /*
           if (data && data.settings && data.settings.button_color) {
             this._overlayColor = data.settings.button_color;
             document.documentElement.style.setProperty('--pw-overlay-color', this._overlayColor);
           }
+          */
         })
         .catch(() => {})
         .finally(() => {
@@ -299,7 +313,11 @@
     _findImageContainer(link) {
       // 1. Image inside the link itself
       const imgInside = link.querySelector('img');
-      if (imgInside) return imgInside.parentElement === link ? link : imgInside.parentElement;
+      if (imgInside) {
+        // If the image is inside the link, use the link itself to be safe against internal swaps (second image hidden)
+        // unless the link is huge (contains text etc). But usually for cards, link=card or link=image-wrapper.
+        return link; 
+      }
 
       // 2. Walk up to find a container with both link and img
       let el = link.parentElement;
@@ -314,6 +332,79 @@
         el = el.parentElement;
       }
       return null;
+    },
+
+    /**
+     * Inject heart on the main product image (Product Page).
+     */
+    _injectProductPage() {
+      // 1. Check if we are on a product page
+      if (!window.location.pathname.includes('/products/')) return;
+
+      // 2. Try to get Product ID
+      let productId = null;
+      if (window.ShopifyAnalytics && window.ShopifyAnalytics.meta && window.ShopifyAnalytics.meta.product) {
+        productId = window.ShopifyAnalytics.meta.product.id;
+      }
+      
+      // If we don't have ID yet, we could fetch .js, but let's assume standard Shopify themes have this global.
+      // If not, we can try to scrape it from a form input.
+      if (!productId) {
+         const input = document.querySelector('input[name="product-id"], input[name="id"]'); // id is usually variant id
+         // Fallback: fetch current page JSON
+         fetch(window.location.pathname + '.js')
+           .then(r => r.json())
+           .then(data => {
+              if (data && data.id) {
+                 this._injectProductPageWithId(String(data.id));
+              }
+           })
+           .catch(() => {});
+         return;
+      }
+
+      this._injectProductPageWithId(String(productId));
+    },
+
+    _injectProductPageWithId(productId) {
+       // 3. Find Main Image Container
+       // Heuristics for common themes (Dawn, Horizon, etc.)
+       const selectors = [
+         '.product__media-list .product__media-item:first-child', // Dawn/standard
+         '.product-gallery__image',
+         '.product-single__media',
+         '.product__main-photos',
+         '.product-image-main',
+         '.product__image-wrapper' // Generic
+       ];
+
+       let container = null;
+       for (const sel of selectors) {
+         const el = document.querySelector(sel);
+         if (el && el.querySelector('img')) {
+           container = el;
+           break;
+         }
+       }
+
+       // If still not found, try looking for the largest image
+       if (!container) {
+          const mainImg = document.querySelector('.product-single__photo, .product__media img');
+          if (mainImg) container = mainImg.parentElement;
+       }
+
+       if (container) {
+          // Check if already injected
+          if (container.querySelector('.pw-overlay-heart')) return;
+          
+          this._initOverlays(); // Verify setup
+          this._addOverlayHeart(container, productId);
+          
+          // Check status
+          if (this._overlayCustomerId) {
+             this._checkOverlays([productId]);
+          }
+       }
     },
 
     /**
