@@ -347,11 +347,18 @@
         productId = window.ShopifyAnalytics.meta.product.id;
       }
       
-      // If we don't have ID yet, we could fetch .js, but let's assume standard Shopify themes have this global.
-      // If not, we can try to scrape it from a form input.
+      // Fallback: scrape from standard input
       if (!productId) {
-         const input = document.querySelector('input[name="product-id"], input[name="id"]'); // id is usually variant id
-         // Fallback: fetch current page JSON
+         const input = document.querySelector('input[name="product-id"], input[name="id"]'); 
+         if (input) productId = input.value;
+      }
+
+      // Fallback: fetch .js
+      if (!productId) {
+         // Prevent flood of fetches if we already tried
+         if (this._checkedProductPage) return; 
+         this._checkedProductPage = true;
+
          fetch(window.location.pathname + '.js')
            .then(r => r.json())
            .then(data => {
@@ -367,43 +374,68 @@
     },
 
     _injectProductPageWithId(productId) {
-       // 3. Find Main Image Container
-       // Heuristics for common themes (Dawn, Horizon, etc.)
+       // 3. Find Main Image Containers (plural)
+       // We want to inject into ALL slides/images in the gallery, not just one.
        const selectors = [
-         '.product__media-list .product__media-item:first-child', // Dawn/standard
+         '.product__media-list .product__media-item', // Dawn/Standard
          '.product-gallery__image',
-         '.product-single__media',
-         '.product__main-photos',
+         '.product-single__media', // Vintage themes
+         '.product__main-photos', 
          '.product-image-main',
-         '.product__image-wrapper' // Generic
+         '.product__image-wrapper', // Generic
+         '[data-product-single-media-wrapper]',
+         '.product__media-item', // Broad match for Dawn-like
+         '.product-gallery-item', 
+         '.product__slide',
+         '.slick-slide', // Common sliders
+         '.swiper-slide'
        ];
 
-       let container = null;
-       for (const sel of selectors) {
-         const el = document.querySelector(sel);
-         if (el && el.querySelector('img')) {
-           container = el;
-           break;
+       let foundAny = false;
+
+       // Helper to validate and inject
+       const tryInject = (el) => {
+         // specific check: if it's a slide, it must contain an image
+         if (!el.querySelector('img')) return;
+         
+         // Don't inject if it's a video/model wrapper without an image or if hidden
+         if (el.offsetParent === null && !el.classList.contains('slick-cloned')) {
+            // allows hidden slides in slick/swiper but skips purely hidden elements? 
+            // actually slick-cloned might be filtered out if we want unique hearts, 
+            // but for UI consistency we usually want them on clones too.
          }
-       }
 
-       // If still not found, try looking for the largest image
-       if (!container) {
+         // Avoid double injection
+         if (el.querySelector('.pw-overlay-heart')) return;
+
+         // Find the image specifically to position relative to it, or use the container
+         // Ideally we want the wrapper that hugs the image.
+         let target = el;
+         const img = el.querySelector('img');
+         if (img && img.parentElement !== el) {
+             // Use image parent if it's a tighter wrapper (e.g. ratio box)
+             // simplified: use the element selected by the selector usually works best for positioning
+         }
+
+         this._initOverlays(); 
+         this._addOverlayHeart(target, productId);
+         foundAny = true;
+       };
+
+       selectors.forEach(sel => {
+          document.querySelectorAll(sel).forEach(tryInject);
+       });
+
+       // Fallback if nothing found: look for large images
+       if (!foundAny) {
           const mainImg = document.querySelector('.product-single__photo, .product__media img');
-          if (mainImg) container = mainImg.parentElement;
+          if (mainImg && mainImg.parentElement) {
+             tryInject(mainImg.parentElement);
+          }
        }
 
-       if (container) {
-          // Check if already injected
-          if (container.querySelector('.pw-overlay-heart')) return;
-          
-          this._initOverlays(); // Verify setup
-          this._addOverlayHeart(container, productId);
-          
-          // Check status
-          if (this._overlayCustomerId) {
-             this._checkOverlays([productId]);
-          }
+       if (foundAny && this._overlayCustomerId) {
+          this._checkOverlays([productId]);
        }
     },
 
@@ -429,18 +461,21 @@
           return;
         }
 
-        this._processedLinks.add(link);
+      this._processedLinks.add(link);
 
-        if (!toResolve.has(handle)) {
-          toResolve.set(handle, []);
-        }
-        toResolve.get(handle).push(container);
-      });
-
-      if (!toResolve.size) return;
-
-      this._resolveHandlesAndOverlay(toResolve);
-    },
+            if (!toResolve.has(handle)) {
+              toResolve.set(handle, []);
+            }
+            toResolve.get(handle).push(container);
+          });
+    
+          // 2. Also retry product page injection (in case gallery loaded late)
+          this._injectProductPage();
+    
+          if (!toResolve.size) return;
+    
+          this._resolveHandlesAndOverlay(toResolve);
+        },
 
     /**
      * Fetch /products/HANDLE.js in batches to get numeric product IDs, then inject overlays.
