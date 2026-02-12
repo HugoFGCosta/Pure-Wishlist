@@ -4,18 +4,19 @@
   Enable via Theme Settings > App Embeds.
 {% endcomment %}
 
-{{ 'wishlist.css' | asset_url | stylesheet_tag }}
-<script
-  src="{{ 'wishlist.js' | asset_url }}"
-  defer="defer"
+<div
+  id="pw-embed-config"
   data-pw-embed
   data-pw-customer-id="{{ customer.id }}"
-  data-pw-color="{{ block.settings.color }}"></script>
+  data-pw-color="{{ block.settings.color }}"
+  style="display:none"></div>
 
 {% schema %}
 {
   "name": "Pure Wishlist Icons",
   "target": "body",
+  "javascript": "wishlist.js",
+  "stylesheet": "wishlist.css",
   "settings": [
     {
       "type": "color",

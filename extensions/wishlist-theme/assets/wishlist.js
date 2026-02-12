@@ -266,11 +266,11 @@
      * Reads config from embed script data attrs, fetches backend color, scans DOM.
      */
     _initOverlays() {
-      const embedScript = document.querySelector('script[data-pw-embed]');
-      if (!embedScript) return;
+      const embedEl = document.querySelector('[data-pw-embed]');
+      if (!embedEl) return;
 
-      this._overlayCustomerId = embedScript.dataset.pwCustomerId || null;
-      this._overlayColor = embedScript.dataset.pwColor || '#ff0000';
+      this._overlayCustomerId = embedEl.dataset.pwCustomerId || null;
+      this._overlayColor = embedEl.dataset.pwColor || '#ff0000';
 
       // Set fallback color immediately
       document.documentElement.style.setProperty('--pw-overlay-color', this._overlayColor);
@@ -510,9 +510,9 @@
       for (const btn of this.buttons) {
         if (btn.dataset.customerId) return true;
       }
-      // Check embed script
-      const embedScript = document.querySelector('script[data-pw-embed]');
-      if (embedScript && embedScript.dataset.pwCustomerId) return true;
+      // Check embed config element
+      const embedEl = document.querySelector('[data-pw-embed]');
+      if (embedEl && embedEl.dataset.pwCustomerId) return true;
       // On the page block the presence of the grid implies customer is logged in
       if (this.page && document.querySelector('[data-pw-grid]')) return true;
       return false;
