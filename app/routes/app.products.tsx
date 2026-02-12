@@ -1,5 +1,5 @@
 import type { LoaderFunctionArgs } from "react-router";
-import { useLoaderData, Link } from "react-router";
+import { useLoaderData } from "react-router";
 import {
   Page,
   Card,
@@ -48,11 +48,11 @@ export default function ProductsPage() {
             alt={p.title || ""}
             size="small"
           />
-          <Link to={p.url || "#"} target="_top">
+          <a href={p.url || "#"} target="_top" style={{ textDecoration: "none", color: "inherit" }}>
             <Text as="span" variant="bodyMd" fontWeight="semibold">
               {p.title || `Product #${p.product_id}`}
             </Text>
-          </Link>
+          </a>
         </InlineStack>
       </IndexTable.Cell>
       <IndexTable.Cell>

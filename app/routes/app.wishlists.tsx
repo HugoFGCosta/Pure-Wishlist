@@ -1,5 +1,5 @@
 import type { LoaderFunctionArgs, ActionFunctionArgs } from "react-router";
-import { useLoaderData, useSearchParams, useSubmit, useNavigation, Link } from "react-router";
+import { useLoaderData, useSearchParams, useSubmit, useNavigation } from "react-router";
 import { useState, useCallback } from "react";
 import {
   Page,
@@ -112,16 +112,16 @@ export default function WishlistsPage() {
             size="small"
           />
           <BlockStack gap="050">
-            <Link to={item.product_url || "#"} target="_top">
+            <a href={item.product_url || "#"} target="_top" style={{ textDecoration: "none", color: "inherit" }}>
               <Text as="span" variant="bodyMd" fontWeight="semibold">
                 {item.product_title || `#${item.product_id}`}
               </Text>
-            </Link>
+            </a>
           </BlockStack>
         </InlineStack>
       </IndexTable.Cell>
       <IndexTable.Cell>
-        <Link to={item.customer_url || "#"} target="_top">
+        <a href={item.customer_url || "#"} target="_top" style={{ textDecoration: "none", color: "inherit" }}>
           <BlockStack gap="050">
             <Text as="span" variant="bodyMd" fontWeight="semibold">
               {item.customer_name || `#${item.customer_id}`}
@@ -130,7 +130,7 @@ export default function WishlistsPage() {
               <Text as="span" variant="bodySm" tone="subdued">{item.customer_email}</Text>
             )}
           </BlockStack>
-        </Link>
+        </a>
       </IndexTable.Cell>
       <IndexTable.Cell>
         {new Date(item.created_at).toLocaleDateString()}

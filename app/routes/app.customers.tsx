@@ -1,5 +1,5 @@
 import type { LoaderFunctionArgs } from "react-router";
-import { useLoaderData, Link } from "react-router";
+import { useLoaderData } from "react-router";
 import {
   Page,
   Card,
@@ -46,11 +46,11 @@ export default function CustomersPage() {
         <InlineStack gap="300" blockAlign="center" wrap={false}>
           <Avatar size="sm" name={c.name || ""} />
           <BlockStack gap="050">
-            <Link to={c.url || "#"} target="_top">
+            <a href={c.url || "#"} target="_top" style={{ textDecoration: "none", color: "inherit" }}>
               <Text as="span" variant="bodyMd" fontWeight="semibold">
                 {c.name || `Customer #${c.customer_id}`}
               </Text>
-            </Link>
+            </a>
             {c.email && (
               <Text as="span" variant="bodySm" tone="subdued">{c.email}</Text>
             )}

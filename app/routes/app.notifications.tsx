@@ -1,5 +1,5 @@
 import type { LoaderFunctionArgs } from "react-router";
-import { useLoaderData, Link } from "react-router";
+import { useLoaderData } from "react-router";
 import {
   Page,
   Card,
@@ -79,20 +79,20 @@ export default function NotificationsPage() {
             alt={n.product_title || ""}
             size="small"
           />
-          <Link to={n.product_url || "#"} target="_top">
+          <a href={n.product_url || "#"} target="_top" style={{ textDecoration: "none", color: "inherit" }}>
             <Text as="span" variant="bodyMd" fontWeight="semibold">
               {n.product_title || `Product #${n.product_id}`}
             </Text>
-          </Link>
+          </a>
         </InlineStack>
       </IndexTable.Cell>
       <IndexTable.Cell>
         <BlockStack gap="050">
-          <Link to={n.customer_url || "#"} target="_top">
+          <a href={n.customer_url || "#"} target="_top" style={{ textDecoration: "none", color: "inherit" }}>
             <Text as="span" variant="bodyMd">
               {n.customer_name || `Customer #${n.customer_id}`}
             </Text>
-          </Link>
+          </a>
           {n.customer_email && (
             <Text as="span" variant="bodySm" tone="subdued">{n.customer_email}</Text>
           )}

@@ -55,7 +55,7 @@ export async function enrichProducts(
           title: node.title || `Product #${numericId}`,
           handle: node.handle || "",
           image: node.featuredImage?.url || null,
-          url: `shopify://admin/products/${numericId}`,
+          url: `https://${shop}/admin/products/${numericId}`,
         });
       }
     } catch (err) {
@@ -72,7 +72,7 @@ export async function enrichProducts(
         title: `Product #${id}`,
         handle: "",
         image: null,
-        url: `shopify://admin/products/${id}`,
+        url: `https://${shop}/admin/products/${id}`,
       });
     }
   }
@@ -114,7 +114,7 @@ export async function enrichCustomers(
           numericId,
           name,
           email: node.email || "",
-          url: `shopify://admin/customers/${numericId}`,
+          url: `https://${shop}/admin/customers/${numericId}`,
         });
       }
     } catch (err) {

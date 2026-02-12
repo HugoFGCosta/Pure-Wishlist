@@ -177,11 +177,11 @@ export default function DashboardPage() {
                           size="small"
                         />
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <Link to={p.url || "#"} target="_top">
+                          <a href={p.url || "#"} target="_top" style={{ textDecoration: "none", color: "inherit" }}>
                             <Text as="span" variant="bodyMd" fontWeight="semibold">
                               {p.title || `Product #${p.product_id}`}
                             </Text>
-                          </Link>
+                          </a>
                         </div>
                         <Badge tone="info">{`${p.count} saves`}</Badge>
                       </div>
