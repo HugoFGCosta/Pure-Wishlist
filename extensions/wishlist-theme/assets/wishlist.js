@@ -340,7 +340,6 @@
     _injectProductPage() {
       // 1. Check if we are on a product page
       if (!window.location.pathname.includes('/products/')) return;
-      console.log('[PureWishlist] _injectProductPage: On product page');
 
       // 2. Try to get Product ID
       let productId = null;
@@ -360,20 +359,17 @@
          if (this._checkedProductPage) return; 
          this._checkedProductPage = true;
 
-         console.log('[PureWishlist] Product ID not found in global/DOM, fetching JSON...');
          fetch(window.location.pathname + '.js')
            .then(r => r.json())
            .then(data => {
               if (data && data.id) {
-                 console.log('[PureWishlist] Product ID fetched:', data.id);
                  this._injectProductPageWithId(String(data.id));
               }
            })
-           .catch((err) => console.error('[PureWishlist] Failed to fetch product JSON', err));
+           .catch(() => {});
          return;
       }
 
-      console.log('[PureWishlist] Product ID found:', productId);
       this._injectProductPageWithId(String(productId));
     },
 
@@ -381,6 +377,8 @@
        // 3. Find Main Image Containers (plural)
        // We want to inject into ALL slides/images in the gallery, not just one.
        const selectors = [
+         '.product-media', // Identified from debug logs
+         '.product-media-container', // Identified from debug logs
          '.product__media-list .product__media-item', // Dawn/Standard
          '.product-gallery__image',
          '.product-single__media', // Vintage themes
@@ -427,18 +425,13 @@
        };
 
        selectors.forEach(sel => {
-          const els = document.querySelectorAll(sel);
-          if (els.length) console.log(`[PureWishlist] Selector matched: "${sel}" (${els.length} elements)`);
-          els.forEach(tryInject);
-          if (els.length) foundAny = true;
+          document.querySelectorAll(sel).forEach(tryInject);
        });
 
        // Fallback if nothing found: look for large images
        if (!foundAny) {
-          console.warn('[PureWishlist] No gallery selectors matched. Trying generic fallback...');
           const mainImg = document.querySelector('.product-single__photo, .product__media img');
           if (mainImg && mainImg.parentElement) {
-             console.log('[PureWishlist] Fallback: Injecting into main image parent');
              tryInject(mainImg.parentElement);
              foundAny = true;
           }
@@ -446,8 +439,6 @@
 
        if (foundAny && this._overlayCustomerId) {
           this._checkOverlays([productId]);
-       } else if (!foundAny) {
-          console.error('[PureWishlist] Could not find any product image container to inject heart into.');
        }
     },
 
