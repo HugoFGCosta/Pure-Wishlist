@@ -1,0 +1,29 @@
+{% comment %}
+  Pure Wishlist — Heart Overlay Embed
+  Auto-injects wishlist hearts on all product card images.
+  Enable via Theme Settings > App Embeds.
+{% endcomment %}
+
+{{ 'wishlist.css' | asset_url | stylesheet_tag }}
+<script
+  src="{{ 'wishlist.js' | asset_url }}"
+  defer="defer"
+  data-pw-embed
+  data-pw-customer-id="{{ customer.id }}"
+  data-pw-color="{{ block.settings.color }}"></script>
+
+{% schema %}
+{
+  "name": "Pure Wishlist Icons",
+  "target": "body",
+  "settings": [
+    {
+      "type": "color",
+      "id": "color",
+      "label": "Heart color (fallback)",
+      "default": "#ff0000",
+      "info": "Used if no color is set in the app dashboard."
+    }
+  ]
+}
+{% endschema %}
