@@ -221,7 +221,9 @@
   padding: 0.45rem;
   cursor: pointer;
   color: #888;
-  transition: color 0.15s ease, border-color 0.15s ease;
+  transition:
+    color 0.15s ease,
+    border-color 0.15s ease;
 }
 
 .pw-card__remove:hover {
@@ -278,4 +280,88 @@
   text-align: center;
   padding: 2rem;
   color: #999;
+}
+
+/* ==========================================================================
+   Heart Overlay (auto-injected on product cards)
+   ========================================================================== */
+
+.pw-overlay-heart {
+  position: absolute;
+  z-index: 20;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  /* Override theme variable if present */
+  --media-radius: 50%;
+  border-radius: 50% !important;
+  border: none;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--pw-overlay-color, #ff0000);
+  cursor: pointer;
+  padding: 0;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+/* Ensure specificity wins against theme wildcards */
+.product-media .pw-overlay-heart,
+.media-gallery .pw-overlay-heart,
+.pw-overlay-heart.pw-overlay-heart {
+  border-radius: 50% !important;
+}
+
+/* Position variants */
+.pw-overlay-heart--top-right {
+  top: 8px;
+  right: 8px;
+}
+.pw-overlay-heart--top-left {
+  top: 8px;
+  left: 8px;
+}
+.pw-overlay-heart--bottom-right {
+  bottom: 8px;
+  right: 8px;
+}
+.pw-overlay-heart--bottom-left {
+  bottom: 8px;
+  left: 8px;
+}
+
+.pw-overlay-heart:hover:not(:disabled) {
+  transform: scale(1.12);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+}
+
+.pw-overlay-heart:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.pw-overlay-heart svg {
+  display: block;
+}
+
+/* Outline visible by default, filled hidden — reuses class names */
+.pw-overlay-heart .pw-heart__filled {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.pw-overlay-heart .pw-heart__outline {
+  transition: opacity 0.2s ease;
+}
+
+/* Active (wishlisted) state */
+.pw-overlay--active .pw-heart__filled {
+  opacity: 1;
+}
+
+.pw-overlay--active .pw-heart__outline {
+  opacity: 0;
 }
