@@ -307,28 +307,31 @@
     },
 
     /**
-     * Find the image container near a product link.
-     * Returns the tightest parent around the product image for accurate positioning.
+     * Find the card-level container near a product link.
+     * Never returns the <a> itself — sliders have one <a> per slide, which
+     * would inject a heart on every slide causing duplicates during transitions.
      */
     _findImageContainer(link) {
-      // 1. Image inside the link itself
-      const imgInside = link.querySelector('img');
-      if (imgInside) {
-        // If the image is inside the link, use the link itself to be safe against internal swaps (second image hidden)
-        // unless the link is huge (contains text etc). But usually for cards, link=card or link=image-wrapper.
-        return link; 
-      }
-
-      // 2. Walk up to find a container with both link and img
+      // Walk up from the link's parent to find a card-level container.
       let el = link.parentElement;
-      for (let i = 0; i < 6 && el && el !== document.body; i++) {
-        const img = el.querySelector('img');
-        if (img && el.querySelector('a[href*="/products/"]')) {
-          // Return the tightest wrapper around the image, not the whole card
-          const imgParent = img.parentElement;
-          if (imgParent && imgParent !== el) return imgParent;
-          return el;
+      for (let i = 0; i < 8 && el && el !== document.body; i++) {
+        const tag = el.tagName;
+        // <li> and <article> are reliable card-level wrappers in any theme
+        if (tag === 'LI' || tag === 'ARTICLE') return el;
+        // A div/section that contains both an image AND a non-image product link = full card
+        if (tag === 'DIV' || tag === 'SECTION') {
+          if (el.querySelector('img')) {
+            const hasTextLink = Array.from(el.querySelectorAll('a[href*="/products/"]'))
+              .some(a => !a.querySelector('img'));
+            if (hasTextLink) return el;
+          }
         }
+        el = el.parentElement;
+      }
+      // Fallback: first non-anchor ancestor that contains an image
+      el = link.parentElement;
+      while (el && el !== document.body) {
+        if (el.tagName !== 'A' && el.querySelector('img')) return el;
         el = el.parentElement;
       }
       return null;
