@@ -25,7 +25,8 @@ export async function getDashboardStats(shopId: string) {
         .from("wishlist_events")
         .select("*", { count: "exact", head: true })
         .eq("shop_id", shopId)
-        .eq("event_type", "purchased"),
+        .eq("event_type", "purchased")
+        .gte("created_at", new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()),
     ]);
 
   const uniqueCustomerIds = new Set(uniqueCustomers.data?.map((w) => w.customer_id));
