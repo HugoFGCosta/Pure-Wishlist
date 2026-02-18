@@ -113,8 +113,9 @@
     toggle(productId, wrapEl) {
       const isActive = wrapEl.classList.contains('pw-btn--active');
 
-      // Optimistic UI
+      // Optimistic UI + invalidate cache immediately
       this._setActive(wrapEl, !isActive);
+      try { sessionStorage.removeItem('pw_wishlisted'); } catch (e) {}
 
       fetch(PROXY, {
         method: 'POST',
@@ -128,7 +129,6 @@
         })
         .then((data) => {
           this._setActive(wrapEl, !!data.wishlisted);
-          // Sync all overlays for the same product
           this._syncOverlays(String(productId), !!data.wishlisted);
         })
         .catch((err) => {
@@ -277,33 +277,11 @@
       this._overlayColor = embedEl.dataset.pwColor || '#ff0000';
       this._overlayPosition = embedEl.dataset.pwPosition || 'top-right';
 
-      // Set color immediately
       document.documentElement.style.setProperty('--pw-overlay-color', this._overlayColor);
 
-      // Priority: Embed Settings > Backend Settings
-      // If we have a color from the embed (and it's not just the default or we want to trust it), use it.
-      // We still fetch settings for other potential configs (if any), but won't overwrite color if embed provided one.
-      
-      fetch(`${PROXY}?action=settings`, { credentials: 'same-origin' })
-        .then((r) => r.ok ? r.json() : null)
-        .then((data) => {
-          // Only overwrite if we didn't get a valid color from embed or if we want to enforce backend
-          // But user requested "Theme Editor color should apply". 
-          // So we only update if we *don't* have an overlayColor yet (unlikely) 
-          // or if we decide to implement a "force backend" flag. 
-          // For now, we simply ignore backend color to fix the issue.
-          /*
-          if (data && data.settings && data.settings.button_color) {
-            this._overlayColor = data.settings.button_color;
-            document.documentElement.style.setProperty('--pw-overlay-color', this._overlayColor);
-          }
-          */
-        })
-        .catch(() => {})
-        .finally(() => {
-          this._scanAndInject();
-          this._observeDOM();
-        });
+      // Scan immediately — no need to wait for any fetch
+      this._scanAndInject();
+      this._observeDOM();
     },
 
     /**
@@ -480,41 +458,50 @@
         },
 
     /**
-     * Fetch /products/HANDLE.js in batches to get numeric product IDs, then inject overlays.
+     * Resolve product handles → numeric IDs. Uses sessionStorage cache to skip
+     * fetches for handles we've already resolved in this browser session.
      */
     _resolveHandlesAndOverlay(handleMap) {
-      const handles = Array.from(handleMap.keys());
-      const BATCH = 6;
-      const batches = [];
+      const CACHE_KEY = 'pw_handle_cache';
+      let cache = {};
+      try { cache = JSON.parse(sessionStorage.getItem(CACHE_KEY) || '{}'); } catch (e) {}
 
-      for (let i = 0; i < handles.length; i += BATCH) {
-        batches.push(handles.slice(i, i + BATCH));
+      const productIdMap = new Map();
+      const toFetch = [];
+
+      // Resolve cached handles instantly
+      for (const handle of handleMap.keys()) {
+        if (cache[handle]) {
+          productIdMap.set(handle, cache[handle]);
+        } else {
+          toFetch.push(handle);
+        }
       }
 
-      const productIdMap = new Map(); // handle → productId
+      // All cached — inject immediately
+      if (!toFetch.length) {
+        this._injectAllOverlays(handleMap, productIdMap);
+        return;
+      }
 
-      const processBatch = (batchIndex) => {
-        if (batchIndex >= batches.length) {
-          this._injectAllOverlays(handleMap, productIdMap);
-          return;
-        }
+      // Fetch uncached handles in parallel (all at once, browser limits concurrency)
+      const promises = toFetch.map((handle) =>
+        fetch(`/products/${handle}.js`)
+          .then((r) => r.ok ? r.json() : null)
+          .then((data) => {
+            if (data && data.id) {
+              const id = String(data.id);
+              productIdMap.set(handle, id);
+              cache[handle] = id;
+            }
+          })
+          .catch(() => {})
+      );
 
-        const batch = batches[batchIndex];
-        const promises = batch.map((handle) =>
-          fetch(`/products/${handle}.js`)
-            .then((r) => r.ok ? r.json() : null)
-            .then((data) => {
-              if (data && data.id) {
-                productIdMap.set(handle, String(data.id));
-              }
-            })
-            .catch(() => {})
-        );
-
-        Promise.all(promises).then(() => processBatch(batchIndex + 1));
-      };
-
-      processBatch(0);
+      Promise.all(promises).then(() => {
+        try { sessionStorage.setItem(CACHE_KEY, JSON.stringify(cache)); } catch (e) {}
+        this._injectAllOverlays(handleMap, productIdMap);
+      });
     },
 
     /**
@@ -569,9 +556,10 @@
         if (!this._overlayCustomerId) return;
 
         const isActive = btn.classList.contains('pw-overlay--active');
-        // Optimistic
+        // Optimistic UI + invalidate cache immediately (before POST)
         this._setOverlayActive(btn, !isActive);
         this._syncOverlays(productId, !isActive);
+        try { sessionStorage.removeItem('pw_wishlisted'); } catch (e) {}
 
         fetch(PROXY, {
           method: 'POST',
@@ -597,19 +585,36 @@
 
     /**
      * Batch check overlay hearts for wishlisted state.
+     * Uses sessionStorage with 60s TTL for instant rendering on repeat visits.
      */
     _checkOverlays(productIds) {
+      const CACHE_KEY = 'pw_wishlisted';
+      const TTL = 60000; // 60 seconds
+
+      // Try cache first
+      try {
+        const cached = JSON.parse(sessionStorage.getItem(CACHE_KEY) || 'null');
+        if (cached && Date.now() - cached.t < TTL) {
+          const set = new Set(cached.ids);
+          document.querySelectorAll('.pw-overlay-heart').forEach((btn) => {
+            if (set.has(btn.dataset.pwProductId)) this._setOverlayActive(btn, true);
+          });
+          return;
+        }
+      } catch (e) {}
+
       fetch(`${PROXY}?action=check&products=${productIds.join(',')}`, {
         credentials: 'same-origin',
       })
         .then((r) => r.json())
         .then((data) => {
-          const set = new Set((data.wishlisted || []).map(String));
+          const ids = (data.wishlisted || []).map(String);
+          const set = new Set(ids);
           document.querySelectorAll('.pw-overlay-heart').forEach((btn) => {
-            if (set.has(btn.dataset.pwProductId)) {
-              this._setOverlayActive(btn, true);
-            }
+            if (set.has(btn.dataset.pwProductId)) this._setOverlayActive(btn, true);
           });
+          // Cache result
+          try { sessionStorage.setItem(CACHE_KEY, JSON.stringify({ t: Date.now(), ids })); } catch (e) {}
         })
         .catch((err) => console.error('[PureWishlist] overlay check failed', err));
     },
