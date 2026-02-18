@@ -23,7 +23,6 @@ export default function IndexPage() {
             __html: `
           body { 
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; 
-            max-width: 600px; 
             margin: 0; 
             padding: 40px 20px; 
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
