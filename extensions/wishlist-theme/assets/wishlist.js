@@ -377,72 +377,67 @@
     },
 
     _injectProductPageWithId(productId) {
-       // 3. Find Main Image Containers (plural)
-       // We want to inject into ALL slides/images in the gallery, not just one.
-       const selectors = [
-         '.product-media', // Identified from debug logs
-         '.product-media-container', // Identified from debug logs
-         '.product__media-list .product__media-item', // Dawn/Standard
-         '.product-gallery__image',
-         '.product-single__media', // Vintage themes
-         '.product__main-photos', 
-         '.product-image-main',
-         '.product__image-wrapper', // Generic
-         '[data-product-single-media-wrapper]',
-         '.product__media-item', // Broad match for Dawn-like
-         '.product-gallery-item', 
-         '.product__slide',
-         '.slick-slide', // Common sliders
-         '.swiper-slide'
-       ];
+      const injectOnce = (el) => {
+        if (!el || el.querySelector('.pw-overlay-heart')) return false;
+        this._addOverlayHeart(el, productId);
+        if (this._overlayCustomerId) this._checkOverlays([productId]);
+        return true;
+      };
 
-       let foundAny = false;
+      // 1. Gallery-level custom elements (Horizon, Dawn 15+, etc.)
+      const galleryEls = ['media-gallery', 'slider-component', 'product-media-gallery'];
+      for (const tag of galleryEls) {
+        const el = document.querySelector(tag);
+        if (el && el.querySelector('img') && injectOnce(el)) return;
+      }
 
-       // Helper to validate and inject
-       const tryInject = (el) => {
-         // specific check: if it's a slide, it must contain an image
-         if (!el.querySelector('img')) return;
-         
-         // Don't inject if it's a video/model wrapper without an image or if hidden
-         if (el.offsetParent === null && !el.classList.contains('slick-cloned')) {
-            // allows hidden slides in slick/swiper but skips purely hidden elements? 
-            // actually slick-cloned might be filtered out if we want unique hearts, 
-            // but for UI consistency we usually want them on clones too.
-         }
+      // 2. Find first slide-level element, then walk up to gallery wrapper
+      const slideSelectors = [
+        '.product-media',
+        '.product-media-container',
+        '.product__media-item',
+        '.product-gallery__image',
+        '.product-single__media',
+        '.product__main-photos',
+        '.product-image-main',
+        '.product__image-wrapper',
+        '[data-product-single-media-wrapper]',
+        '.product-gallery-item',
+        '.product__slide',
+        '.slick-slide',
+        '.swiper-slide',
+      ];
 
-         // Avoid double injection
-         if (el.querySelector('.pw-overlay-heart')) return;
+      let firstSlide = null;
+      let matchedSel = null;
+      for (const sel of slideSelectors) {
+        const el = document.querySelector(sel);
+        if (el && el.querySelector('img')) { firstSlide = el; matchedSel = sel; break; }
+      }
 
-         // Find the image specifically to position relative to it, or use the container
-         // Ideally we want the wrapper that hugs the image.
-         let target = el;
-         const img = el.querySelector('img');
-         if (img && img.parentElement !== el) {
-             // Use image parent if it's a tighter wrapper (e.g. ratio box)
-             // simplified: use the element selected by the selector usually works best for positioning
-         }
+      // 3. Last resort: find any product image on the page
+      if (!firstSlide) {
+        const img = document.querySelector(
+          '.product-single__photo, .product__media img, [data-product-featured-image], main img'
+        );
+        if (img) { firstSlide = img.parentElement; matchedSel = null; }
+      }
 
-         this._initOverlays(); 
-         this._addOverlayHeart(target, productId);
-         foundAny = true;
-       };
+      if (!firstSlide) return;
 
-       selectors.forEach(sel => {
-          document.querySelectorAll(sel).forEach(tryInject);
-       });
+      // Walk UP from firstSlide to find the gallery wrapper
+      let gallery = firstSlide.parentElement;
+      for (let i = 0; i < 6 && gallery && gallery !== document.body; i++) {
+        const count = matchedSel
+          ? gallery.querySelectorAll(matchedSel).length
+          : gallery.querySelectorAll('img').length;
+        if (count > 1) break;
+        gallery = gallery.parentElement;
+      }
 
-       // Fallback if nothing found: look for large images
-       if (!foundAny) {
-          const mainImg = document.querySelector('.product-single__photo, .product__media img');
-          if (mainImg && mainImg.parentElement) {
-             tryInject(mainImg.parentElement);
-             foundAny = true;
-          }
-       }
+      if (!gallery || gallery === document.body) gallery = firstSlide.parentElement;
 
-       if (foundAny && this._overlayCustomerId) {
-          this._checkOverlays([productId]);
-       }
+      injectOnce(gallery);
     },
 
     /**
@@ -472,7 +467,8 @@
             if (!toResolve.has(handle)) {
               toResolve.set(handle, []);
             }
-            toResolve.get(handle).push(container);
+            const containers = toResolve.get(handle);
+            if (!containers.includes(container)) containers.push(container);
           });
     
           // 2. Also retry product page injection (in case gallery loaded late)
