@@ -8,7 +8,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   results["env:SHOPIFY_API_SECRET"] = process.env.SHOPIFY_API_SECRET ? `set (${process.env.SHOPIFY_API_SECRET.slice(0, 8)}...)` : "MISSING";
   results["env:SHOPIFY_APP_URL"] = process.env.SHOPIFY_APP_URL || "MISSING";
   results["env:SUPABASE_URL"] = process.env.SUPABASE_URL ? `set (${process.env.SUPABASE_URL.slice(0, 30)}...)` : "MISSING";
-  results["env:SUPABASE_SERVICE_ROLE_KEY"] = process.env.SUPABASE_SERVICE_ROLE_KEY ? `set (${process.env.SUPABASE_SERVICE_ROLE_KEY.slice(0, 10)}...)` : "MISSING";
+  results["env:SUPABASE_SERVICE_ROLE_KEY"] = process.env.SUPABASE_SERVICE_ROLE_KEY ? "SET" : "MISSING";
   results["env:SUPABASE_DB_URL"] = process.env.SUPABASE_DB_URL
     ? `set (${(process.env.SUPABASE_DB_URL || "").replace(/:[^@]+@/, ":***@").slice(0, 60)}...)`
     : "MISSING";
