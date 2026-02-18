@@ -4,7 +4,7 @@ application_url = "https://purewishlist.vercel.app"  # SUBSTITUA PELA SUA URL RE
 embedded = true
 
 [access_scopes]
-scopes = "read_products,read_customers,write_products"
+scopes = "read_products,read_customers,write_products,read_orders"
 
 [auth]
 redirect_urls = [
