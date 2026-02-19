@@ -8,6 +8,10 @@
 (function () {
   'use strict';
 
+  // Prevent double-init when loaded by both page block <script> and embed block schema
+  if (window.__PureWishlistLoaded) return;
+  window.__PureWishlistLoaded = true;
+
   const PROXY = '/apps/wishlist';
 
   /** SVG heart markup shared by overlays */
@@ -179,6 +183,9 @@
      * GET /apps/wishlist?action=list
      */
     loadWishlistPage() {
+      if (this._wishlistPageLoaded) return;
+      this._wishlistPageLoaded = true;
+
       const grid = document.querySelector('[data-pw-grid]');
       const empty = document.querySelector('[data-pw-empty]');
       const loading = document.querySelector('[data-pw-loading]');

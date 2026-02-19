@@ -14,7 +14,7 @@ function getCustomerId(url: URL): number | null {
 }
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { session } = await authenticate.public.appProxy(request);
+  const { session, admin } = await authenticate.public.appProxy(request);
   const url = new URL(request.url);
   const action = url.searchParams.get("action");
 
@@ -51,7 +51,62 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   if (action === "list") {
     const items = await getCustomerWishlist(shop.id, customerId);
-    return Response.json({ products: items });
+    if (!items.length) return Response.json({ products: [] });
+
+    // Enrich with Shopify product data
+    const productIds = [...new Set(items.map((i) => i.product_id))];
+    const gids = productIds.map((id) => `"gid://shopify/Product/${id}"`).join(", ");
+
+    let productMap = new Map<number, any>();
+    try {
+      if (!admin) throw new Error("No admin API access");
+      const response = await admin.graphql(
+        `query {
+          nodes(ids: [${gids}]) {
+            ... on Product {
+              id
+              title
+              handle
+              featuredImage { url }
+              priceRangeV2: priceRange { minVariantPrice { amount currencyCode } }
+              variants(first: 1) { edges { node { id } } }
+            }
+          }
+        }`,
+      );
+      const json = await response.json();
+      for (const node of json?.data?.nodes || []) {
+        if (!node?.id) continue;
+        const numId = Number(node.id.replace("gid://shopify/Product/", ""));
+        const variantGid = node.variants?.edges?.[0]?.node?.id || "";
+        const variantId = variantGid.replace("gid://shopify/ProductVariant/", "");
+        const price = node.priceRangeV2?.minVariantPrice;
+        productMap.set(numId, {
+          title: node.title,
+          handle: node.handle,
+          image: node.featuredImage?.url || "",
+          url: `/products/${node.handle}`,
+          price: price ? `${price.amount} ${price.currencyCode}` : "",
+          variant_id: variantId ? Number(variantId) : null,
+        });
+      }
+    } catch (err) {
+      console.error("[proxy] Failed to enrich products:", err);
+    }
+
+    const enriched = productIds.map((pid) => {
+      const info = productMap.get(pid) || {};
+      return {
+        id: pid,
+        title: info.title || `Product #${pid}`,
+        image: info.image || "",
+        url: info.url || "#",
+        price: info.price || "",
+        variant_id: info.variant_id || null,
+      };
+    });
+
+    return Response.json({ products: enriched });
   }
 
   return Response.json({ error: "Invalid action" }, { status: 400 });
