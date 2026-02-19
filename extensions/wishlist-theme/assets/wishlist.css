@@ -365,3 +365,32 @@
 .pw-overlay--active .pw-heart__outline {
   opacity: 0;
 }
+
+/* ==========================================================================
+   Header Nav Icon (auto-injected)
+   ========================================================================== */
+
+.pw-nav-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  color: inherit;
+  text-decoration: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.pw-nav-icon:hover {
+  opacity: 0.7;
+}
+
+.pw-nav-icon svg {
+  display: block;
+  width: 22px;
+  height: 22px;
+  pointer-events: none;
+}

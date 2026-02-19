@@ -56,9 +56,12 @@
 
       // Auto-overlay system (from embed block)
       this._initOverlays();
-      
+
       // Explicit support for Product Page main image
       this._injectProductPage();
+
+      // Header nav icon
+      this._injectNavIcon();
     },
 
     /* ------------------------------------------------------------------ */
@@ -429,6 +432,12 @@
       links.forEach((link) => {
         if (this._processedLinks.has(link)) return;
 
+        // Skip our own nav icon and links inside header/nav areas
+        if (link.closest('.pw-nav-icon, header, .header, [role="banner"]')) {
+          this._processedLinks.add(link);
+          return;
+        }
+
         const match = link.getAttribute('href').match(/\/products\/([a-zA-Z0-9\-_]+)/);
         if (!match) return;
 
@@ -680,6 +689,99 @@
         childList: true,
         subtree: true,
       });
+    },
+
+    /* ------------------------------------------------------------------ */
+    /*  Header Nav Icon                                                   */
+    /* ------------------------------------------------------------------ */
+
+    _injectNavIcon() {
+      const embedEl = document.querySelector('[data-pw-embed]');
+      if (!embedEl) return;
+      if (embedEl.dataset.pwNavEnabled !== 'true') return;
+
+      this._navUrl = embedEl.dataset.pwNavUrl || '/pages/wishlist';
+      this._navColor = embedEl.dataset.pwNavColor || '';
+
+      // Try immediately, then retry with increasing delays for late-rendering themes
+      this._doInjectNavIcon();
+      setTimeout(() => this._doInjectNavIcon(), 300);
+      setTimeout(() => this._doInjectNavIcon(), 1000);
+      setTimeout(() => this._doInjectNavIcon(), 2500);
+    },
+
+    _doInjectNavIcon() {
+      if (document.querySelector('.pw-nav-icon')) return;
+
+      const selectors = [
+        'header-actions',
+        '.header__icons',
+        '.header-actions',
+        '.header-icons',
+        '.site-header__icons',
+        '.header__icon-list',
+        '.header__buttons',
+      ];
+
+      let iconArea = null;
+      for (const sel of selectors) {
+        const el = document.querySelector(sel);
+        if (el) { iconArea = el; break; }
+      }
+
+      if (!iconArea) {
+        const knownIcon = document.querySelector(
+          '.header-actions__action, a[href="/cart"], .header__icon--cart, ' +
+          '.account-button, [data-cart-icon], .site-header__cart'
+        );
+        if (knownIcon) {
+          let parent = knownIcon.parentElement;
+          while (parent && parent.children.length <= 2 && parent.tagName !== 'HEADER') {
+            parent = parent.parentElement;
+          }
+          iconArea = parent;
+        }
+      }
+
+      if (!iconArea) return;
+
+      const link = document.createElement('a');
+      link.href = this._navUrl;
+      link.className = 'pw-nav-icon';
+      const themeIcon = iconArea.querySelector('.header-actions__action, .header__icon');
+      if (themeIcon) {
+        themeIcon.classList.forEach((cls) => {
+          if (cls !== 'account-button' && cls !== 'header__icon--cart' && cls !== 'cart-button') {
+            link.classList.add(cls);
+          }
+        });
+      }
+      link.setAttribute('aria-label', 'Wishlist');
+      if (this._navColor) link.style.color = this._navColor;
+      link.innerHTML =
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"' +
+        ' fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">' +
+        '<path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 ' +
+        '2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09 ' +
+        'C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5 ' +
+        'c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>';
+
+      // Insert as FIRST child (leftmost) to avoid being overlapped by theme re-renders
+      if (iconArea.firstElementChild) {
+        iconArea.insertBefore(link, iconArea.firstElementChild);
+      } else {
+        iconArea.appendChild(link);
+      }
+
+      // Watch for theme web components re-rendering and wiping our icon
+      if (!this._navIconObserver) {
+        this._navIconObserver = new MutationObserver(() => {
+          if (!document.querySelector('.pw-nav-icon')) {
+            this._doInjectNavIcon();
+          }
+        });
+        this._navIconObserver.observe(iconArea, { childList: true, subtree: true });
+      }
     },
 
     /* ------------------------------------------------------------------ */
