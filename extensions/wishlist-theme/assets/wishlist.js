@@ -588,14 +588,17 @@
      */
     _checkOverlays(productIds) {
       const CACHE_KEY = 'pw_wishlisted';
+      const checkedSet = new Set(productIds.map(String));
 
-      // Optimistic: apply cache immediately for instant display (don't return early)
+      // Optimistic: apply cache for instant display (only for products in this check)
       try {
         const cached = JSON.parse(sessionStorage.getItem(CACHE_KEY) || 'null');
         if (cached && cached.ids) {
-          const set = new Set(cached.ids);
+          const wishSet = new Set(cached.ids);
           document.querySelectorAll('.pw-overlay-heart').forEach((btn) => {
-            this._setOverlayActive(btn, set.has(btn.dataset.pwProductId));
+            if (checkedSet.has(btn.dataset.pwProductId)) {
+              this._setOverlayActive(btn, wishSet.has(btn.dataset.pwProductId));
+            }
           });
         }
       } catch (e) {}
@@ -607,13 +610,23 @@
         .then((r) => r.json())
         .then((data) => {
           const ids = (data.wishlisted || []).map(String);
-          const set = new Set(ids);
-          // Set correct state for ALL overlay hearts (active AND inactive)
+          const wishSet = new Set(ids);
+          // Only update hearts for products we actually checked
           document.querySelectorAll('.pw-overlay-heart').forEach((btn) => {
-            this._setOverlayActive(btn, set.has(btn.dataset.pwProductId));
+            if (checkedSet.has(btn.dataset.pwProductId)) {
+              this._setOverlayActive(btn, wishSet.has(btn.dataset.pwProductId));
+            }
           });
-          // Update cache
-          try { sessionStorage.setItem(CACHE_KEY, JSON.stringify({ t: Date.now(), ids })); } catch (e) {}
+          // Merge into cache (preserve other products' state)
+          try {
+            const cached = JSON.parse(sessionStorage.getItem(CACHE_KEY) || 'null');
+            const existing = (cached && cached.ids) ? cached.ids : [];
+            const merged = new Set(existing);
+            // Remove checked products, then add back only wishlisted ones
+            checkedSet.forEach((id) => merged.delete(id));
+            ids.forEach((id) => merged.add(id));
+            sessionStorage.setItem(CACHE_KEY, JSON.stringify({ t: Date.now(), ids: [...merged] }));
+          } catch (e) {}
         })
         .catch((err) => console.error('[PureWishlist] overlay check failed', err));
     },
