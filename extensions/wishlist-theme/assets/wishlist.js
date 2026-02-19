@@ -245,6 +245,9 @@
         atc.addEventListener('click', () => {
           const variantId = product.variant_id;
           if (!variantId) return;
+          const origText = atc.textContent;
+          atc.textContent = 'Adding…';
+          atc.disabled = true;
           fetch('/cart/add.js', {
             method: 'POST',
             credentials: 'same-origin',
@@ -252,20 +255,47 @@
             body: JSON.stringify({ items: [{ id: variantId, quantity: 1 }] }),
           })
             .then((r) => {
-              if (r.ok) atc.textContent = 'Added!';
+              if (r.ok) {
+                atc.textContent = 'Added ✓';
+                // Notify theme to update cart counter
+                this._refreshCartBubble();
+              } else {
+                atc.textContent = origText;
+                atc.disabled = false;
+              }
             })
-            .catch(() => {});
+            .catch(() => {
+              atc.textContent = origText;
+              atc.disabled = false;
+            });
         });
       }
 
       if (remove) {
         remove.addEventListener('click', () => {
-          this.toggle(product.id, { classList: { contains: () => true, add() {}, remove() {} } });
-          card.remove();
-          if (!grid.children.length) {
-            const emptyEl = document.querySelector('[data-pw-empty]');
-            if (emptyEl) emptyEl.style.display = '';
-          }
+          // Optimistic: remove card immediately
+          card.style.transition = 'opacity 0.25s ease';
+          card.style.opacity = '0';
+          setTimeout(() => {
+            card.remove();
+            if (!grid.children.length) {
+              const emptyEl = document.querySelector('[data-pw-empty]');
+              if (emptyEl) emptyEl.style.display = '';
+            }
+          }, 250);
+
+          // Fire API call to remove from wishlist
+          try { sessionStorage.removeItem('pw_wishlisted'); } catch (e) {}
+          fetch(PROXY, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ productId: String(product.id) }),
+          })
+            .then(() => {
+              this._syncOverlays(String(product.id), false);
+            })
+            .catch((err) => console.error('[PureWishlist] remove failed', err));
         });
       }
 
@@ -789,6 +819,64 @@
         });
         this._navIconObserver.observe(iconArea, { childList: true, subtree: true });
       }
+    },
+
+    /* ------------------------------------------------------------------ */
+    /*  Cart Counter Update                                               */
+    /* ------------------------------------------------------------------ */
+
+    /**
+     * Refresh the cart count bubble in the header after add-to-cart.
+     * Uses multiple strategies for cross-theme compatibility.
+     */
+    _refreshCartBubble() {
+      fetch('/cart.js', { credentials: 'same-origin' })
+        .then((r) => r.json())
+        .then((cart) => {
+          const count = cart.item_count;
+
+          // Strategy 1: Section Rendering API — re-render header from server
+          // Find the header section id dynamically
+          const headerSection = document.querySelector('[id^="shopify-section"][id*="header"]');
+          if (headerSection) {
+            const sectionId = headerSection.id.replace('shopify-section-', '');
+            fetch('/?sections=' + sectionId, { credentials: 'same-origin' })
+              .then((r) => r.json())
+              .then((sections) => {
+                const html = sections[sectionId];
+                if (!html) return;
+                const tmp = document.createElement('div');
+                tmp.innerHTML = html;
+                // Replace cart-icon element (Horizon, Dawn, etc.)
+                const newCartIcon = tmp.querySelector('cart-icon');
+                const oldCartIcon = document.querySelector('cart-icon');
+                if (newCartIcon && oldCartIcon) {
+                  oldCartIcon.innerHTML = newCartIcon.innerHTML;
+                }
+                // Also replace generic cart-count-bubble
+                const newBubble = tmp.querySelector('.cart-count-bubble, #cart-icon-bubble');
+                const oldBubble = document.querySelector('.cart-count-bubble, #cart-icon-bubble');
+                if (newBubble && oldBubble && !oldCartIcon) {
+                  oldBubble.innerHTML = newBubble.innerHTML;
+                }
+              })
+              .catch(() => {});
+          }
+
+          // Strategy 2: Direct DOM update as fallback
+          document.querySelectorAll(
+            'cart-icon .cart-count-bubble span[aria-hidden], ' +
+            '.cart-count-bubble span[aria-hidden], ' +
+            '.cart-count, [data-cart-count], .js-cart-count, ' +
+            '.cart-item-count, .header__cart-count, ' +
+            '#cart-icon-bubble span[aria-hidden]'
+          ).forEach((el) => { el.textContent = count; });
+
+          // Strategy 3: Dispatch events for themes that listen
+          document.dispatchEvent(new CustomEvent('cart:refresh'));
+          document.dispatchEvent(new CustomEvent('cart:change', { detail: { cart } }));
+        })
+        .catch(() => {});
     },
 
     /* ------------------------------------------------------------------ */
