@@ -30,6 +30,7 @@
     /** Overlay-specific state */
     _overlayCustomerId: null,
     _overlayColor: null,
+    _toggleInFlight: 0,
     _processedLinks: new WeakSet(),
 
     /**
@@ -115,6 +116,7 @@
       this._setActive(wrapEl, !isActive);
       try { sessionStorage.removeItem('pw_wishlisted'); } catch (e) {}
 
+      this._toggleInFlight++;
       fetch(PROXY, {
         method: 'POST',
         credentials: 'same-origin',
@@ -132,7 +134,8 @@
         .catch((err) => {
           console.error('[PureWishlist] toggle failed', err);
           this._setActive(wrapEl, isActive);
-        });
+        })
+        .finally(() => { this._toggleInFlight--; });
     },
 
     /**
@@ -356,7 +359,7 @@
       const injectOnce = (el) => {
         if (!el || el.querySelector('.pw-overlay-heart')) return false;
         this._addOverlayHeart(el, productId);
-        if (this._overlayCustomerId) this._checkOverlays([productId]);
+        if (this._overlayCustomerId) this._checkOverlays();
         return true;
       };
 
@@ -523,7 +526,7 @@
 
       // Batch check if customer is logged in
       if (this._overlayCustomerId && allProductIds.length) {
-        this._checkOverlays(allProductIds);
+        this._checkOverlays();
       }
     },
 
@@ -559,6 +562,7 @@
         this._syncOverlays(productId, !isActive);
         try { sessionStorage.removeItem('pw_wishlisted'); } catch (e) {}
 
+        this._toggleInFlight++;
         fetch(PROXY, {
           method: 'POST',
           credentials: 'same-origin',
@@ -575,7 +579,8 @@
           .catch((err) => {
             console.error('[PureWishlist] overlay toggle failed', err);
             this._syncOverlays(productId, isActive);
-          });
+          })
+          .finally(() => { this._toggleInFlight--; });
       });
 
       container.appendChild(btn);
@@ -586,47 +591,51 @@
      * Always fetches from server to ensure correct state.
      * Uses sessionStorage cache only for instant optimistic display while fetch is in-flight.
      */
-    _checkOverlays(productIds) {
+    _checkOverlays() {
+      // Skip check while a toggle is in progress to prevent flicker
+      if (this._toggleInFlight > 0) return;
+
       const CACHE_KEY = 'pw_wishlisted';
-      const checkedSet = new Set(productIds.map(String));
 
-      // Optimistic: apply cache for instant display (only for products in this check)
-      try {
-        const cached = JSON.parse(sessionStorage.getItem(CACHE_KEY) || 'null');
-        if (cached && cached.ids) {
-          const wishSet = new Set(cached.ids);
-          document.querySelectorAll('.pw-overlay-heart').forEach((btn) => {
-            if (checkedSet.has(btn.dataset.pwProductId)) {
+      // Collect ALL product IDs from hearts currently in the DOM
+      const allIds = new Set();
+      document.querySelectorAll('.pw-overlay-heart').forEach((btn) => {
+        if (btn.dataset.pwProductId) allIds.add(btn.dataset.pwProductId);
+      });
+      if (!allIds.size) return;
+
+      // Optimistic: apply cache instantly (but not during a toggle)
+      if (this._toggleInFlight === 0) {
+        try {
+          const cached = JSON.parse(sessionStorage.getItem(CACHE_KEY) || 'null');
+          if (cached && cached.ids) {
+            const wishSet = new Set(cached.ids);
+            document.querySelectorAll('.pw-overlay-heart').forEach((btn) => {
               this._setOverlayActive(btn, wishSet.has(btn.dataset.pwProductId));
-            }
-          });
-        }
-      } catch (e) {}
+            });
+          }
+        } catch (e) {}
+      }
 
-      // Always fetch from server for authoritative state
-      fetch(`${PROXY}?action=check&products=${productIds.join(',')}`, {
+      // Fetch from server with ALL product IDs on the page
+      fetch(`${PROXY}?action=check&products=${[...allIds].join(',')}`, {
         credentials: 'same-origin',
       })
-        .then((r) => r.json())
+        .then((r) => {
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          return r.json();
+        })
         .then((data) => {
+          // Discard stale response if a toggle happened while this fetch was in-flight
+          if (this._toggleInFlight > 0) return;
           const ids = (data.wishlisted || []).map(String);
           const wishSet = new Set(ids);
-          // Only update hearts for products we actually checked
+          // Apply to ALL hearts on the page
           document.querySelectorAll('.pw-overlay-heart').forEach((btn) => {
-            if (checkedSet.has(btn.dataset.pwProductId)) {
-              this._setOverlayActive(btn, wishSet.has(btn.dataset.pwProductId));
-            }
+            this._setOverlayActive(btn, wishSet.has(btn.dataset.pwProductId));
           });
-          // Merge into cache (preserve other products' state)
-          try {
-            const cached = JSON.parse(sessionStorage.getItem(CACHE_KEY) || 'null');
-            const existing = (cached && cached.ids) ? cached.ids : [];
-            const merged = new Set(existing);
-            // Remove checked products, then add back only wishlisted ones
-            checkedSet.forEach((id) => merged.delete(id));
-            ids.forEach((id) => merged.add(id));
-            sessionStorage.setItem(CACHE_KEY, JSON.stringify({ t: Date.now(), ids: [...merged] }));
-          } catch (e) {}
+          // Cache
+          try { sessionStorage.setItem(CACHE_KEY, JSON.stringify({ t: Date.now(), ids })); } catch (e) {}
         })
         .catch((err) => console.error('[PureWishlist] overlay check failed', err));
     },
