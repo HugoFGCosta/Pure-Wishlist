@@ -83,9 +83,7 @@
         .then((data) => {
           const set = new Set((data.wishlisted || []).map(String));
           this.buttons.forEach((wrap) => {
-            if (set.has(String(wrap.dataset.productId))) {
-              this._setActive(wrap, true);
-            }
+            this._setActive(wrap, set.has(String(wrap.dataset.productId)));
           });
         })
         .catch((err) => console.error('[PureWishlist] check failed', err));
@@ -585,24 +583,24 @@
 
     /**
      * Batch check overlay hearts for wishlisted state.
-     * Uses sessionStorage with 60s TTL for instant rendering on repeat visits.
+     * Always fetches from server to ensure correct state.
+     * Uses sessionStorage cache only for instant optimistic display while fetch is in-flight.
      */
     _checkOverlays(productIds) {
       const CACHE_KEY = 'pw_wishlisted';
-      const TTL = 60000; // 60 seconds
 
-      // Try cache first
+      // Optimistic: apply cache immediately for instant display (don't return early)
       try {
         const cached = JSON.parse(sessionStorage.getItem(CACHE_KEY) || 'null');
-        if (cached && Date.now() - cached.t < TTL) {
+        if (cached && cached.ids) {
           const set = new Set(cached.ids);
           document.querySelectorAll('.pw-overlay-heart').forEach((btn) => {
-            if (set.has(btn.dataset.pwProductId)) this._setOverlayActive(btn, true);
+            this._setOverlayActive(btn, set.has(btn.dataset.pwProductId));
           });
-          return;
         }
       } catch (e) {}
 
+      // Always fetch from server for authoritative state
       fetch(`${PROXY}?action=check&products=${productIds.join(',')}`, {
         credentials: 'same-origin',
       })
@@ -610,10 +608,11 @@
         .then((data) => {
           const ids = (data.wishlisted || []).map(String);
           const set = new Set(ids);
+          // Set correct state for ALL overlay hearts (active AND inactive)
           document.querySelectorAll('.pw-overlay-heart').forEach((btn) => {
-            if (set.has(btn.dataset.pwProductId)) this._setOverlayActive(btn, true);
+            this._setOverlayActive(btn, set.has(btn.dataset.pwProductId));
           });
-          // Cache result
+          // Update cache
           try { sessionStorage.setItem(CACHE_KEY, JSON.stringify({ t: Date.now(), ids })); } catch (e) {}
         })
         .catch((err) => console.error('[PureWishlist] overlay check failed', err));
